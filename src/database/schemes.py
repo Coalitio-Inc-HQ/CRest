@@ -3,11 +3,19 @@ from datetime import datetime
 
 
 class AuthDTO(BaseModel):
-    AUTH_ID: str
-    AUTH_EXPIRES: int
-    REFRESH_ID: str
+    access_token: str
+    expires_in: int
+    refresh_token: str
+    client_endpoint: str
     member_id: str
-    status: str
-    PLACEMENT: str
-    PLACEMENT_OPTIONS: dict
+    application_token: str | None
+    placement_options: dict | None
+
+    # AUTH_ID: str
+    # AUTH_EXPIRES: int
+    # REFRESH_ID: str
+    # member_id: str
+    # status: str
+    # PLACEMENT: str
+    # PLACEMENT_OPTIONS: dict
 

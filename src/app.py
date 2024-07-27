@@ -10,6 +10,8 @@ from .utils import decode_auth
 from .database.session_database import get_session, AsyncSession
 from .database.database_requests import *
 
+from .call.calls import call_url_сirculation_application
+
 async def lifespan(app: FastAPI):
     log(LogMessage(time=None,heder="Сервер запущен.", heder_dict=None,body=None,level=log_en.INFO))
     yield
@@ -39,54 +41,68 @@ app.add_middleware(
 
 router = APIRouter()
 
-@app.get("/")
-async def root():
-    return RedirectResponse("/docs")
 
-
-@router.head("/init")
+@router.head("/install")
 async def init_head():
     pass
+
 
 @router.head("/index")
 async def index_head():
     pass
 
-@router.post("/init", response_class=HTMLResponse)
-async def init_post (DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str,request: Request, session: AsyncSession = Depends(get_session)):
-    auth_dict = decode_auth(str(await request.body()))
-    await insert_auth(session, AuthDTO.model_validate(auth_dict,from_attributes=True))
 
-    log(LogMessage(time=None,heder="Init.", 
-                    heder_dict={
-                    },
-                    body=
-                    {
-                        "DOMAIN":DOMAIN,
-                        "PROTOCOL":PROTOCOL,
-                        "LANG":LANG,
-                        "APP_SID":APP_SID,
-                        "auth_dict":auth_dict
-                    },
-                    level=log_en.DEBUG))
-    
-    return """
-    <head>
-        <script src="//api.bitrix24.com/api/v1/"></script>
-        <script>
-            BX24.init(function(){
-                BX24.installFinish();
-            });
-        </script>
-    </head>
-    <body>
-            installation has been finished
-    </body>
-    """
+@router.post("/install", response_class=HTMLResponse)
+async def install_post (DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str,request: Request, session: AsyncSession = Depends(get_session)):
+    auth_dict = decode_auth(str(await request.body()))
+
+    if (auth_dict["PLACEMENT"]=="DEFAULT"):
+        await insert_auth(session, AuthDTO(
+            access_token = auth_dict["AUTH_ID"],
+            expires_in = auth_dict["AUTH_EXPIRES"],
+            refresh_token = auth_dict["REFRESH_ID"],
+            client_endpoint = f"https://{DOMAIN}/rest/",
+            member_id = auth_dict["member_id"],
+            application_token = APP_SID,
+            placement_options = auth_dict["PLACEMENT_OPTIONS"]
+        ))
+
+        log(LogMessage(time=None,heder="Install.", 
+                        heder_dict={
+                        },
+                        body=
+                        {
+                            "DOMAIN":DOMAIN,
+                            "PROTOCOL":PROTOCOL,
+                            "LANG":LANG,
+                            "APP_SID":APP_SID,
+                            "auth_dict":auth_dict
+                        },
+                        level=log_en.DEBUG))
+        
+        return """
+        <head>
+            <script src="//api.bitrix24.com/api/v1/"></script>
+            <script>
+                BX24.init(function(){
+                    BX24.installFinish();
+                });
+            </script>
+        </head>
+        <body>
+                installation has been finished.
+        </body>
+        """
+    else:
+        return """
+        <body>
+                Installation has been fail.
+        </body>
+        """
 
 
 @router.post("/index")
-async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: Request):
+async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: Request, session: AsyncSession = Depends(get_session)):
     auth_dict = decode_auth(str(await request.body()))
 
     log(LogMessage(time=None,heder="Init.", 
@@ -101,5 +117,30 @@ async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: R
                     "auth_dict":auth_dict
                 },
                 level=log_en.DEBUG))
+
+    auth = await get_auth_by_member_id(session=session, member_id=auth_dict["member_id"])
+
+    res = await call_url_сirculation_application("crm.contact.add",
+                                                 {
+                                                    "FIELDS":{
+                                                        "NAME": "Иван",
+                                                        "LAST_NAME": "Петров",
+                                                        "EMAIL":[
+                                                            {
+                                                                "VALUE": "mail@example.com",
+                                                                "VALUE_TYPE": "WORK"
+                                                            }
+                                                        ],
+                                                        "PHONE":[
+                                                            {
+                                                                "VALUE": "555888",
+                                                                "VALUE_TYPE": "WORK"
+                                                            }
+                                                        ]
+                                                    }
+                                                 }
+                                                 ,auth, session)
+
+    return res
 
 app.include_router(router, tags=["webhook"])

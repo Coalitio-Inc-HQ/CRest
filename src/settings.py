@@ -47,25 +47,3 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-
-def get_app_settings():
-    """
-    Формирует настройки CRest.
-    """
-
-    if (settings.C_REST_WEB_HOOK_URL!=""):
-        return {
-            "is_web_hook": True,
-            "C_REST_WEB_HOOK_URL": settings.C_REST_WEB_HOOK_URL
-        }
-    
-    # дописать про Application
-
-def get_url(method:str):
-    settings = get_app_settings()
-    
-    url=""
-    if settings["is_web_hook"]:
-        url=f"{settings["C_REST_WEB_HOOK_URL"]}/{method}.json"
-    else:
-        pass # дописать про Application
