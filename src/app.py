@@ -10,7 +10,7 @@ from .utils import decode_auth
 from .database.session_database import get_session, AsyncSession
 from .database.database_requests import *
 
-from .call.calls import call_url_сirculation_application
+from .call.calls import call_url_сirculation_application, call_batch_сirculation_application
 
 async def lifespan(app: FastAPI):
     log(LogMessage(time=None,heder="Сервер запущен.", heder_dict=None,body=None,level=log_en.INFO))
@@ -55,6 +55,8 @@ async def index_head():
 @router.post("/install", response_class=HTMLResponse)
 async def install_post (DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str,request: Request, session: AsyncSession = Depends(get_session)):
     auth_dict = decode_auth(str(await request.body()))
+
+    print(auth_dict)
 
     if (auth_dict["PLACEMENT"]=="DEFAULT"):
         await insert_auth(session, AuthDTO(
@@ -141,6 +143,31 @@ async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: R
                                                  }
                                                  ,auth, session)
 
-    return res
+    res1 = await call_batch_сirculation_application(
+        auth,
+        [
+            {
+                "method": "crm.contact.add",
+                "params":{
+                    "FIELDS":{
+                        "NAME":"Иван1",
+                        "LAST_NAME":"Петров1"
+                    }
+                }
+            },
+            {
+                "method": "crm.contact.add",
+                "params":{
+                    "FIELDS":{
+                        "NAME":"Иван2",
+                        "LAST_NAME":"Петров2"
+                    }
+                }
+            }
+        ],
+        session,
+    )
+
+    return {"res":res, "res1":res1}
 
 app.include_router(router, tags=["webhook"])

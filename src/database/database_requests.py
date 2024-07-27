@@ -9,6 +9,8 @@ async def insert_auth(session: AsyncSession, auth: AuthDTO) -> None:
     """
     Проверяет есть ли AuthDTO и сохраняет или обновляет AuthDTO в БД.
     """
+    print("axasdasasdsaasddasadsasdasd")
+    print(auth)
     res_orm = (await session.execute(select(AuthORM).where(AuthORM.member_id==auth.member_id))).all()
     if (len(res_orm)==0):
         session.add(AuthORM(access_token = auth.access_token,
@@ -32,7 +34,7 @@ async def insert_auth(session: AsyncSession, auth: AuthDTO) -> None:
     await session.commit()
 
 
-async def update_auth(session: AsyncSession, member_id: str, access_token: str, expires_in: int, client_endpoint: str, refresh_token: str):
+async def update_auth(session: AsyncSession, member_id: str, access_token: str, expires_in: int, client_endpoint: str, refresh_token: str) -> None:
     """
     Используется для обновления AuthDTO после использования refresh_token.
     """
