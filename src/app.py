@@ -168,6 +168,30 @@ async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: R
         session,
     )
 
-    return {"res":res, "res1":res1}
+    arr = []
+    for i in range(46):
+        arr.append(
+            {
+                "method": "crm.contact.add",
+                "params":{
+                    "FIELDS":{
+                        "NAME":f"Иван{i}",
+                        "LAST_NAME":f"Петров{i}"
+                    }
+                }
+            }
+        )
+
+    arr.insert(10,
+            {
+                "method": "crm.contact.add",
+                "params":{
+                    "FIELDS":"NAME"
+                }
+            }
+        )
+    res2 = await call_batch_сirculation_application(auth, arr, session, True)
+
+    return {"res":res, "res1":res1, "res2":res2}
 
 app.include_router(router, tags=["webhook"])

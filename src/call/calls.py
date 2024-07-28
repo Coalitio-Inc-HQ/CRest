@@ -1,4 +1,4 @@
-from .call_parameters_encoder.сall_parameters_encoder import call_parameters_encoder,call_parameters_encoder_bath
+from .call_parameters_encoder.сall_parameters_encoder import call_parameters_encoder,call_parameters_encoder_batсh
 from ..utils import send_http_post_request
 from src.database.schemes import AuthDTO
 from src.database.database_requests import update_auth, AsyncSession
@@ -23,10 +23,11 @@ class ExceptionAuth(Exception):
 class ExceptionKargAuthNotFound(Exception):
     pass
 
-
 class ExceptionCallError(Exception):
     error: str
 
+class ExceptionBatchCallError(Exception):
+    pass
 
 def error_catcher(name: str):
     """
@@ -72,6 +73,8 @@ def error_catcher(name: str):
                 return result
             
             except ExceptionCallError as error:
+                raise error
+            except ExceptionBatchCallError as error:
                 raise error
             except ExceptionKargAuthNotFound as error:
                 raise error
@@ -301,7 +304,7 @@ async def refresh_auth(auth: AuthDTO, session: AsyncSession) -> Any:
         raise ExceptionRefreshAuth(error="undefined")
 
 @error_catcher("call_batch_web_hook")
-async def call_batch_web_hook(calls:list, halt: bool = False) -> Any:
+async def call_batch_web_hook(calls:list, halt: bool = False) -> list:
     """
     Осуществляет выполнение пакета запросов.
     Calls:
@@ -317,17 +320,43 @@ async def call_batch_web_hook(calls:list, halt: bool = False) -> Any:
         },
         ...
     ]
-    """
-    url=f"{settings.C_REST_WEB_HOOK_URL}/batch.json"+"?"+call_parameters_encoder_bath(calls)+f"&halt={'1' if halt else '0'}"
 
-    res = await send_http_post_request(url,None)
+    !!! Примечание кодирование массива начинается с 1 т.к. в таком случае в ответе содержатся индексы.
+    !!! Также если, происходит ошибка в первом методе, то он не нумеруется.
+    !!! По этому нумерация с 1.
+    """
+
+    params = call_parameters_encoder_batсh(calls)
+
+    res = []
+
+    for param in params:
+        try:
+            temp_res = await sub_call_batch_web_hook(param, halt)
+            res.append(temp_res)
+            if halt and "result" in temp_res and "result_error" in temp_res["result"] and temp_res["result"]["result_error"] != []:
+                break
+        except:
+            if halt:
+                break
+
     # добавить логику работы с огрничениями (очередь)
+
+    if len(res) == 0:
+        raise ExceptionBatchCallError()
 
     return res
     
+@error_catcher("sub_call_batch_web_hook")
+async def sub_call_batch_web_hook(param: str, halt: bool = False) -> Any:
+    """
+    Вызывает сигмент batch по web_hook.
+    """
+    url=f"{settings.C_REST_WEB_HOOK_URL}/batch.json"+"?"+param+f"&halt={'1' if halt else '0'}"
+    return await send_http_post_request(url,None)
+
 
 @error_catcher("call_batch_сirculation_application")
-@auto_refresh_token()
 async def call_batch_сirculation_application(auth: AuthDTO, calls:list, session: AsyncSession, halt: bool = False) -> Any:
     """
     Осуществляет выполнение пакета запросов.
@@ -345,10 +374,32 @@ async def call_batch_сirculation_application(auth: AuthDTO, calls:list, session
         ...
     ]
     """
-    url=f"{auth.client_endpoint}/batch.json"+f"?auth={auth.access_token}&"+call_parameters_encoder_bath(calls)+f"&halt={'1' if halt else '0'}"
+    params = call_parameters_encoder_batсh(calls)
 
-    res = await send_http_post_request(url,None)
+    res = []
+
+    for param in params:
+        try:
+            temp_res = await sub_call_batch_сirculation_application(auth, param, session, halt)
+            res.append(temp_res)
+            if halt and "result" in temp_res and "result_error" in temp_res["result"] and temp_res["result"]["result_error"] != []:
+                break
+        except:
+            if halt:
+                break
+
     # добавить логику работы с огрничениями (очередь)
-    
+
+    if len(res) == 0:
+        raise ExceptionBatchCallError()
+
     return res
-    
+
+@error_catcher("sub_call_batch_сirculation_application")
+@auto_refresh_token()
+async def sub_call_batch_сirculation_application(auth: AuthDTO, param: str, session: AsyncSession, halt: bool = False) -> Any:
+    """
+    Вызывает сигмент batch по сirculation_application.
+    """
+    url=f"{auth.client_endpoint}/batch.json"+f"?auth={auth.access_token}&"+param+f"&halt={'1' if halt else '0'}"
+    return await send_http_post_request(url,None)

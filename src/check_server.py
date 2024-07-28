@@ -1,6 +1,6 @@
 from src.settings import settings
 from src.loging.logging_utility import log, LogMessage,log_en
-from src.database.session_database import engine
+from src.database.session_database import session_factory
 from sqlalchemy import text
 
 import asyncio
@@ -14,8 +14,8 @@ if settings.C_REST_WEB_HOOK_URL == "" and (settings.C_REST_CLIENT_ID=="" or sett
 
 
 async def test_db():
-    async with engine.connect() as conn:
-        await conn.execute(text("SELECT version();")) 
+    async with session_factory() as conn:
+        await conn.execute(text("SELECT version()")) 
 
 try:
     asyncio.run(test_db())
