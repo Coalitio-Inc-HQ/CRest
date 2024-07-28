@@ -13,6 +13,19 @@ from typing import Any
 import functools
 import inspect
 
+"""
+TODO
+При смене домена в bitrix 24 происходит 302 а не 403.
+Подробнее: https://dev.1c-bitrix.ru/rest_help/rest_sum/change_domen.php .
+
+Ввести ограничение времени запроса.
+https://dev.1c-bitrix.ru/rest_help/rest_sum/index.php.
+
+Попробывать ввести сборщик url.
+
+Пулы.
+"""
+
 
 class ExceptionRefreshAuth(Exception):
     error: str
@@ -403,3 +416,111 @@ async def sub_call_batch_сirculation_application(auth: AuthDTO, param: str, ses
     """
     url=f"{auth.client_endpoint}/batch.json"+f"?auth={auth.access_token}&"+param+f"&halt={'1' if halt else '0'}"
     return await send_http_post_request(url,None)
+
+
+async def get_list_web_hook(method:str, params:dict | None = None) -> list:
+    """
+    Выполняет извлечение списка с помощью метода method и параметров params.
+
+    Автоматически сортерует значения по ID ASC.
+    В случае указания DESC также работает.
+    Параметр start устанавливается в -1.
+    """
+    is_id_oder_normal = True
+    if params:
+        if "order" in params:
+            if "ID" in params["order"]:
+                if params["order"]["ID"] == "DESC":
+                    is_id_oder_normal = False
+            else:
+                params["order"]["ID"] = "ASC"
+        else:
+            params["order"] = {
+                "ID":"ASC"
+            }
+    else:
+        params = {
+            "order":{
+                "ID":"ASC"
+            }
+        }
+
+    params["start"] = "-1"
+
+    last_id = None
+
+    result = []
+
+    while True:
+        params_coppy = params.copy()
+        if last_id:
+            if "filter" in params:
+                params_coppy["filter"][f"{">" if is_id_oder_normal else "<"}ID"] = str(last_id)
+
+            else:
+                params_coppy["filter"] = {f"{">" if is_id_oder_normal else "<"}ID": str(last_id)}
+
+        res = await call_url_web_hook(method, params_coppy)
+
+        if len(res["result"]) == 0:
+            break
+        
+        last_id = int(res["result"][len(res["result"])-1]["ID"])
+
+        result.extend(res["result"])
+    
+    return result
+
+
+async def get_list_сirculation_application(auth: AuthDTO,  session: AsyncSession, method:str, params:dict | None = None) -> list:
+    """
+    Выполняет извлечение списка с помощью метода method и параметров params.
+
+    Автоматически сортерует значения по ID ASC.
+    В случае указания DESC также работает.
+    Параметр start устанавливается в -1.
+    """
+    is_id_oder_normal = True
+    if params:
+        if "order" in params:
+            if "ID" in params["order"]:
+                if params["order"]["ID"] == "DESC":
+                    is_id_oder_normal = False
+            else:
+                params["order"]["ID"] = "ASC"
+        else:
+            params["order"] = {
+                "ID":"ASC"
+            }
+    else:
+        params = {
+            "order":{
+                "ID":"ASC"
+            }
+        }
+
+    params["start"] = "-1"
+
+    last_id = None
+
+    result = []
+
+    while True:
+        params_coppy = params.copy()
+        if last_id:
+            if "filter" in params:
+                params_coppy["filter"][f"{">" if is_id_oder_normal else "<"}ID"] = str(last_id)
+
+            else:
+                params_coppy["filter"] = {f"{">" if is_id_oder_normal else "<"}ID": str(last_id)}
+
+        res = await call_url_сirculation_application(method, params_coppy, auth, session)
+
+        if len(res["result"]) == 0:
+            break
+        
+        last_id = int(res["result"][len(res["result"])-1]["ID"])
+
+        result.extend(res["result"])
+    
+    return result

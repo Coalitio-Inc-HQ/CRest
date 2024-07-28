@@ -10,7 +10,7 @@ from .utils import decode_auth
 from .database.session_database import get_session, AsyncSession
 from .database.database_requests import *
 
-from .call.calls import call_url_сirculation_application, call_batch_сirculation_application
+from .call.calls import call_url_сirculation_application, call_batch_сirculation_application,get_list_сirculation_application
 
 async def lifespan(app: FastAPI):
     log(LogMessage(time=None,heder="Сервер запущен.", heder_dict=None,body=None,level=log_en.INFO))
@@ -192,6 +192,8 @@ async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: R
         )
     res2 = await call_batch_сirculation_application(auth, arr, session, True)
 
-    return {"res":res, "res1":res1, "res2":res2}
+    res3 = await get_list_сirculation_application(auth, session, "crm.contact.list")
+
+    return {"res":res, "res1":res1, "res2":res2, "res3": res3}
 
 app.include_router(router, tags=["webhook"])
