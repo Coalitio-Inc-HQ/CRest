@@ -1,5 +1,5 @@
 from .call_parameters_encoder.сall_parameters_encoder import call_parameters_encoder,call_parameters_encoder_batсh
-from ..utils import send_http_post_request
+from ..utils import send_http_post_request, send_http_post_request_url_builder
 from src.database.schemes import AuthDTO
 from src.database.database_requests import update_auth, AsyncSession
 from src.settings import settings
@@ -17,13 +17,8 @@ import inspect
 
 """
 TODO
-При смене домена в bitrix 24 происходит 302 а не 403.
-Подробнее: https://dev.1c-bitrix.ru/rest_help/rest_sum/change_domen.php .
-
 Ввести ограничение времени запроса.
 https://dev.1c-bitrix.ru/rest_help/rest_sum/index.php.
-
-Попробывать ввести сборщик url.
 
 Пулы.
 """
@@ -32,17 +27,22 @@ https://dev.1c-bitrix.ru/rest_help/rest_sum/index.php.
 class ExceptionRefreshAuth(Exception):
     error: str
 
+
 class ExceptionAuth(Exception):
     pass
+
 
 class ExceptionKargAuthNotFound(Exception):
     pass
 
+
 class ExceptionCallError(Exception):
     error: str
 
+
 class ExceptionBatchCallError(Exception):
     pass
+
 
 def error_catcher(name: str):
     """
@@ -223,6 +223,7 @@ def auto_refresh_token():
         return inner
     return wrapper
 
+
 @error_catcher("call_method")
 @auto_refresh_token()
 async def call_method(url_builder: UrlBuilder, method:str, params:dict) -> Any:
@@ -238,9 +239,7 @@ async def call_method(url_builder: UrlBuilder, method:str, params:dict) -> Any:
         }
     }
     """
-    url = url_builder.build_url(method,call_parameters_encoder(params))
-
-    res = await send_http_post_request(url,None)
+    res = await send_http_post_request_url_builder(url_builder, method, call_parameters_encoder(params))
     # добавить логику работы с огрничениями (очередь)
 
     return res
@@ -304,6 +303,7 @@ async def refresh_auth(url_builder: UrlBuilder) -> Any:
                 level=log_en.ERROR))
         raise ExceptionRefreshAuth(error="undefined")
 
+
 @error_catcher("call_batch")
 async def call_batch(url_builder: UrlBuilder, calls:list, halt: bool = False) -> list:
     """
@@ -349,13 +349,14 @@ async def call_batch(url_builder: UrlBuilder, calls:list, halt: bool = False) ->
 
     return res
     
+
 @error_catcher("sub_call_batch")
 @auto_refresh_token()
 async def sub_call_batch(url_builder: UrlBuilder, param: str, halt: bool = False) -> Any:
     """
     Вызывает сигмент batch.
     """
-    return await send_http_post_request(url_builder.build_url("batch",param+f"&halt={'1' if halt else '0'}"),None)
+    return await send_http_post_request_url_builder(url_builder,"batch",param+f"&halt={'1' if halt else '0'}")
 
 
 async def get_list(url_builder: UrlBuilder, method:str, params:dict | None = None) -> list:
