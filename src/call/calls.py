@@ -15,6 +15,7 @@ from typing import Any
 import functools
 import inspect
 
+import math
 """
 TODO
 Ввести ограничение времени запроса.
@@ -362,6 +363,7 @@ async def sub_call_batch(url_builder: UrlBuilder, param: str, halt: bool = False
 async def get_list(url_builder: UrlBuilder, method:str, params:dict | None = None) -> list:
     """
     Выполняет извлечение списка с помощью метода method и параметров params.
+    Возвращяет весь список сразу.
 
     Автоматически сортерует значения по ID ASC.
     В случае указания DESC также работает.
@@ -411,3 +413,93 @@ async def get_list(url_builder: UrlBuilder, method:str, params:dict | None = Non
         result.extend(res["result"])
     
     return result
+
+
+async def get_list_bath(url_builder: UrlBuilder, method:str, params:dict | None = None) -> list:
+    """
+    Выполняет извлечение списка с помощью метода method и параметров params.
+    Возвращяет весь список сразу.
+    """
+    if not params:
+        params = {}
+
+    result = []
+
+    res = await call_method(url_builder, method, params)
+
+    result.extend(res["result"])
+
+    total = int(res["total"])
+
+    count = math.ceil(total/settings.RETURN_LIST_COUNT)-1
+
+    bath_params = []
+    for i in range(count):
+        copy_params = params.copy()
+        copy_params["start"] = str(settings.RETURN_LIST_COUNT*(i+1))
+        bath_params.append(
+            {
+                "method": method,
+                "params":copy_params
+            }
+        )
+    
+    bath_res = await call_batch(url_builder, bath_params)
+
+    for bath_item in bath_res:
+        for key, item in bath_item["result"]["result"].items():
+            result.extend(item)
+    return result
+
+
+async def get_list_generator(url_builder: UrlBuilder, method:str, params:dict | None = None):
+    """
+    Выполняет извлечение списка с помощью метода method и параметров params.
+
+    Автоматически сортерует значения по ID ASC.
+    В случае указания DESC также работает.
+    Параметр start устанавливается в -1.
+    """
+    is_id_oder_normal = True
+    if params:
+        if "order" in params:
+            if "ID" in params["order"]:
+                if params["order"]["ID"] == "DESC":
+                    is_id_oder_normal = False
+            else:
+                params["order"]["ID"] = "ASC"
+        else:
+            params["order"] = {
+                "ID":"ASC"
+            }
+    else:
+        params = {
+            "order":{
+                "ID":"ASC"
+            }
+        }
+
+    params["start"] = "-1"
+
+    last_id = None
+
+
+    while True:
+        params_coppy = params.copy()
+        if last_id:
+            if "filter" in params:
+                params_coppy["filter"][f"{">" if is_id_oder_normal else "<"}ID"] = str(last_id)
+
+            else:
+                params_coppy["filter"] = {f"{">" if is_id_oder_normal else "<"}ID": str(last_id)}
+
+        res = await call_method(url_builder, method, params_coppy)
+
+        if len(res["result"]) == 0:
+            break
+        
+        last_id = int(res["result"][len(res["result"])-1]["ID"])
+
+        for item in res["result"]:
+            yield item
+    

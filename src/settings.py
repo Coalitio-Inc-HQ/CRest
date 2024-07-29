@@ -33,6 +33,7 @@ class Settings(BaseSettings):
 
     BATCH_COUNT: int
 
+    RETURN_LIST_COUNT: int
 
     @property
     def DATABASE_URL_ASINC(self):

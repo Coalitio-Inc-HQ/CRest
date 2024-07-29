@@ -2,7 +2,7 @@
 from src.database.session_database import engine, session_factory
 import asyncio
 
-from src.call.calls import call_method, call_batch, get_list
+from src.call.calls import call_method, call_batch, get_list, get_list_bath, get_list_generator
 from src.call.url_builder import web_hook_url_builder
 
 from src.database.database_requests import *
@@ -47,16 +47,20 @@ async def run():
     # print(res1)
 
 
-    lis = await get_list( web_hook_url_builder,"crm.contact.list", {
-        "order":{
-            "ID":"DESC"
-        },
-        "filter": {
-            ">ID":"1862"
-        }
-    })
-    print (len(lis))
-    for item in lis:
+    # lis = await get_list( web_hook_url_builder,"crm.contact.list")
+    # print (len(lis))
+    # for item in lis:
+    #     print(item)
+
+    # lis1 = await get_list_bath( web_hook_url_builder,"crm.contact.list")
+    # print (len(lis1))
+    # for item in lis1:
+    #     print(item)
+
+    count = 0 
+    async for item in get_list_generator( web_hook_url_builder,"crm.contact.list"):
         print(item)
+        count +=1
+    print(count)
 
 asyncio.run(run())
