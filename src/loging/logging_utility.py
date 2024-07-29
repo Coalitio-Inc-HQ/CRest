@@ -40,3 +40,17 @@ log_swith = {
 def log(messege: LogMessage):
     messege.time = datetime.datetime.now().isoformat()
     log_swith[messege.level](messege)
+
+def filter_array_to_str(arr: list) -> list:
+    res = []
+    for item in arr:
+        if isinstance(item, str):
+            res.append(item)
+    return res
+
+def filter_dict_to_str(dict: dict):
+    res = {}
+    for key, item in dict.items():
+        if isinstance(item, str):
+            res[key] = item
+    return res

@@ -39,14 +39,27 @@ async def update_auth(session: AsyncSession, member_id: str, access_token: str, 
     Используется для обновления AuthDTO после использования refresh_token.
     """
     await session.execute(update(AuthORM).where(AuthORM.member_id==member_id).values(
-                                                                                                access_token = access_token,
-                                                                                                expires_in = expires_in,
-                                                                                                refresh_token = refresh_token,
-                                                                                                client_endpoint = client_endpoint,
-                                                                                                member_id = member_id,
-                                                                                                ))
+                                                                                    access_token = access_token,
+                                                                                    expires_in = expires_in,
+                                                                                    refresh_token = refresh_token,
+                                                                                    client_endpoint = client_endpoint,
+                                                                                    member_id = member_id,
+                                                                                    ))
     
     await session.commit()
+
+
+async def update_auth_domain(session: AsyncSession, member_id: str, domain: str) -> None:
+    """
+    Используется для обновления client_endpoint в AuthDTO.
+    """
+    await session.execute(update(AuthORM).where(AuthORM.member_id==member_id).values(
+                                                                                    client_endpoint = domain,
+                                                                                    member_id = member_id,
+                                                                                    ))
+    
+    await session.commit()
+
 
 async def get_auth_by_member_id(session: AsyncSession, member_id: str) -> AuthDTO:
     """

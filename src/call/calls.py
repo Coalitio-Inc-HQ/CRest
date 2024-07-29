@@ -4,9 +4,11 @@ from src.database.schemes import AuthDTO
 from src.database.database_requests import update_auth, AsyncSession
 from src.settings import settings
 
+from .url_builder import UrlBuilder
+
 from httpx import HTTPStatusError
 
-from src.loging.logging_utility import log, LogMessage,log_en
+from src.loging.logging_utility import log, LogMessage,log_en, filter_array_to_str, filter_dict_to_str
 
 from typing import Any
 
@@ -76,7 +78,7 @@ def error_catcher(name: str):
                         LogMessage(
                             time=None,
                             heder=f"Ошибка при выполнении декоратора error_catcher, name: {name}.", 
-                            heder_dict={"args":args, "kwargs":kwargs},
+                            heder_dict={"args": filter_array_to_str(args), "kwargs": filter_dict_to_str(kwargs)},
                             body={"result":result},
                             level=log_en.ERROR
                             )
@@ -99,7 +101,7 @@ def error_catcher(name: str):
                 log(LogMessage(
                         time=None,
                         heder=f"Ошибка при выполнении декоратора error_catcher, name: {name}.", 
-                        heder_dict={"args":args, "kwargs":kwargs},
+                        heder_dict={"args": filter_array_to_str(args), "kwargs": filter_dict_to_str(kwargs)},
                         body={"error_args":error.args},
                         level=log_en.ERROR
                         )
@@ -112,51 +114,38 @@ def error_catcher(name: str):
 
 def auto_refresh_token():
     """
-    Используется для автоматического обновления токена, 
-    а также в случае ошибки 403 (иожет возникнуть при смене домена) 
-    позволет пройти повторную аутентификацию и получить новый домен.
+    Используется для автоматического обновления токена.
 
     В случае ошибки аутентификации вызывает исключение ExceptionAuth().
 
-    Для корректной работы обновления токена, необходимо передовать токен в параметр auth типа AuthDTO и session типа AsyncSession.
+    Для корректной работы обновления токена, необходимо передовать url_builder: UrlBuilder.
 
     В случае его отсудствия в kwargs будет вызвано исключение ExceptionKargAuthNotFound().
     """
     def wrapper(func):
         args_oder = inspect.signature(func).parameters.keys()
-        index_auth = list(args_oder).index("auth")
-        index_session = list(args_oder).index("session")
+        index_url_builder = list(args_oder).index("url_builder")
 
 
         async def recall(*args, **kwargs):
-            session = None
-            if "session" in kwargs and type(kwargs["session"])==AsyncSession:
-                session = kwargs["session"]
+            url_builder = None
+            if "url_builder" in kwargs and type(kwargs["url_builder"])==UrlBuilder:
+                url_builder = kwargs["url_builder"]
             else:
-                session = args[index_auth]
+                url_builder = args[index_url_builder]
 
-            auth = None
-            if "auth" in kwargs and type(kwargs["auth"])==AuthDTO:
-                auth = kwargs["auth"]
-            else:
-                auth = args[index_auth]
 
             try:
-                new_auth = await refresh_auth(auth, session)
-
-                auth.access_token = new_auth["access_token"]
-                auth.expires_in = new_auth["expires_in"]
-                auth.refresh_token = new_auth["refresh_token"]
-                auth.client_endpoint = new_auth["client_endpoint"]
+                await refresh_auth(url_builder)
 
                 try:
                     result = await func(*args, **kwargs)
                 except HTTPStatusError as error: # может возникнуть если пользователь сменил домен
-                    if error.response.status_code == 403:
+                    if error.response.status_code == 401:
                         log(LogMessage(
                             time=None,
-                            heder=f"Ошибка при выполнении декоратора auto_refresh_token, recall, получен код 403.", 
-                            heder_dict={"args":args, "kwargs":kwargs},
+                            heder=f"Ошибка при выполнении декоратора auto_refresh_token, recall, получен код 401.", 
+                            heder_dict={"args": filter_array_to_str(args), "kwargs": filter_dict_to_str(kwargs)},
                             body={},
                             level=log_en.ERROR
                             )
@@ -170,7 +159,7 @@ def auto_refresh_token():
                         log(LogMessage(
                             time=None,
                             heder=f"Ошибка при выполнении декоратора auto_refresh_token, recall, получена ошибка expired_token.", 
-                            heder_dict={"args":args, "kwargs":kwargs},
+                            heder_dict={"args": filter_array_to_str(args), "kwargs": filter_dict_to_str(kwargs)},
                             body={},
                             level=log_en.ERROR
                             )
@@ -185,77 +174,79 @@ def auto_refresh_token():
 
         @functools.wraps(func)
         async def inner(*args, **kwargs):
-            if (not "auth" in kwargs or type(kwargs["auth"])!=AuthDTO) and (len(args)<=index_auth or type(args[index_auth])!=AuthDTO):
+            if (not "url_builder" in kwargs or not issubclass(type(kwargs["url_builder"]), UrlBuilder)) and (len(args)<=index_url_builder or not issubclass(type(args[index_url_builder]),UrlBuilder)):
                 log(LogMessage(
                         time=None,
-                        heder=f"Ошибка при выполнении декоратора auto_refresh_token, auth не найден или не яввляется объектом AuthDTO.", 
-                        heder_dict={"args":args, "kwargs":kwargs},
+                        heder=f"Ошибка при выполнении декоратора auto_refresh_token, url_builder не найден или не яввляется объектом UrlBuilder.", 
+                        heder_dict={"args": filter_array_to_str(args), "kwargs": filter_dict_to_str(kwargs)},
                         body={},
                         level=log_en.ERROR
                         )
                     )
                 raise ExceptionKargAuthNotFound()
-            if (not "session" in kwargs or type(kwargs["session"])!=AsyncSession) and (len(args)<=index_session or type(args[index_session])!=AsyncSession):
-                log(LogMessage(
-                        time=None,
-                        heder=f"Ошибка при выполнении декоратора auto_refresh_token, session не найден или не яввляется объектом AsyncSession.", 
-                        heder_dict={"args":args, "kwargs":kwargs},
-                        body={},
-                        level=log_en.ERROR
-                        )
-                    )
-                raise ExceptionKargAuthNotFound()
-
+            
 
             try:
                 result = await func(*args, **kwargs)
-            except HTTPStatusError as error: # может возникнуть если пользователь сменил домен
-                if error.response.status_code == 403:
-                    return await recall(*args, **kwargs)
+            except HTTPStatusError as error: 
+                if error.response.status_code == 401:
+                    url_builder = None
+                    if "url_builder" in kwargs and type(kwargs["url_builder"])==UrlBuilder:
+                        url_builder = kwargs["url_builder"]
+                    else:
+                        url_builder = args[index_url_builder]
+
+                    if url_builder.is_reauth:
+                        return await recall(*args, **kwargs)
+                    else:
+                        raise ExceptionAuth()
                 else:
                     raise error
 
 
             if "error" in result:
                 if result["error"] =="expired_token":
-                    return await recall(*args, **kwargs)
+
+                    url_builder = None
+                    if "url_builder" in kwargs and type(kwargs["url_builder"])==UrlBuilder:
+                        url_builder = kwargs["url_builder"]
+                    else:
+                        url_builder = args[index_url_builder]
+
+                    if url_builder.is_reauth:
+                        return await recall(*args, **kwargs)
+                    else: 
+                        raise ExceptionAuth()
 
             return result
 
         return inner
     return wrapper
 
-@error_catcher("call_url_web_hook")
-async def call_url_web_hook(method:str, params:dict) -> Any:
-    """
-    Осуществляет выполнение запроса через web hook.
-    """
-
-    url=f"{settings.C_REST_WEB_HOOK_URL}/{method}.json"+"?"+call_parameters_encoder(params)
-
-    res = await send_http_post_request(url,None)
-    # добавить логику работы с огрничениями (очередь)
-
-    return res
-
-@error_catcher("call_url_сirculation_application")
+@error_catcher("call_method")
 @auto_refresh_token()
-async def call_url_сirculation_application(method:str, params:dict, auth: AuthDTO, session: AsyncSession) -> Any:
+async def call_method(url_builder: UrlBuilder, method:str, params:dict) -> Any:
     """
-    Осуществляет выполнение запроса через app.
+    Осуществляет выполнение запроса через.
+    Пример:
+    url_builder - сборщик url
+    method = "crm.contact.add"
+    params = {
+        "FIELDS":{
+            "NAME":"Иван1",
+            "LAST_NAME":"Петров1"
+        }
+    }
     """
-    params_temp = params
-    params_temp["auth"] = auth.access_token
+    url = url_builder.build_url(method,call_parameters_encoder(params))
 
-    url=f"{auth.client_endpoint}{method}.json"+"?"+call_parameters_encoder(params_temp)
-    
     res = await send_http_post_request(url,None)
     # добавить логику работы с огрничениями (очередь)
 
     return res
 
 
-async def refresh_auth(auth: AuthDTO, session: AsyncSession) -> Any:
+async def refresh_auth(url_builder: UrlBuilder) -> Any:
     """
     Осуществляет обновление токена авторизации.
     Возврящяет следующую информацию:
@@ -286,22 +277,19 @@ async def refresh_auth(auth: AuthDTO, session: AsyncSession) -> Any:
 
     'undefined' => 'Неизвестная ошибка.'
     """
-
-    url = f"https://oauth.bitrix.info/oauth/token/?client_id={settings.C_REST_CLIENT_ID}&grant_type=refresh_token&client_secret={settings.C_REST_CLIENT_SECRET}&refresh_token={auth.refresh_token}"
-
     try:
-        result = await send_http_post_request(url,None)
+        result = await send_http_post_request(url_builder.build_url_update_auth(),None)
 
         if "error" in result:
             log(LogMessage(
                 time=None,
                 heder="Ошибка при выполнении refresh_auth.", 
-                heder_dict={"auth":auth},
+                heder_dict={"auth_url": url_builder.build_url_update_auth()},
                 body={"result":result},
                 level=log_en.ERROR))
             raise ExceptionRefreshAuth(error=result["error"])
-
-        await update_auth(session, result["member_id"], result["access_token"], result["expires_in"], result["client_endpoint"], result["refresh_token"])
+        
+        await url_builder.update_auth(result["access_token"], int(result["expires_in"]), result["client_endpoint"], result["refresh_token"])
 
         return result
     
@@ -311,13 +299,13 @@ async def refresh_auth(auth: AuthDTO, session: AsyncSession) -> Any:
         log(LogMessage(
                 time=None,
                 heder="Ошибка при выполнении refresh_auth.", 
-                heder_dict={"auth":auth},
-                body={"result":result},
+                heder_dict={"auth_url": url_builder.build_url_update_auth()},
+                body={},
                 level=log_en.ERROR))
         raise ExceptionRefreshAuth(error="undefined")
 
-@error_catcher("call_batch_web_hook")
-async def call_batch_web_hook(calls:list, halt: bool = False) -> list:
+@error_catcher("call_batch")
+async def call_batch(url_builder: UrlBuilder, calls:list, halt: bool = False) -> list:
     """
     Осуществляет выполнение пакета запросов.
     Calls:
@@ -333,6 +321,7 @@ async def call_batch_web_hook(calls:list, halt: bool = False) -> list:
         },
         ...
     ]
+    halt указывает прерывать ли выполнение запроса при возниконовени ошибки в одном из методов. RollBack не происходит.
 
     !!! Примечание кодирование массива начинается с 1 т.к. в таком случае в ответе содержатся индексы.
     !!! Также если, происходит ошибка в первом методе, то он не нумеруется.
@@ -345,7 +334,7 @@ async def call_batch_web_hook(calls:list, halt: bool = False) -> list:
 
     for param in params:
         try:
-            temp_res = await sub_call_batch_web_hook(param, halt)
+            temp_res = await sub_call_batch(url_builder, param, halt)
             res.append(temp_res)
             if halt and "result" in temp_res and "result_error" in temp_res["result"] and temp_res["result"]["result_error"] != []:
                 break
@@ -360,119 +349,16 @@ async def call_batch_web_hook(calls:list, halt: bool = False) -> list:
 
     return res
     
-@error_catcher("sub_call_batch_web_hook")
-async def sub_call_batch_web_hook(param: str, halt: bool = False) -> Any:
-    """
-    Вызывает сигмент batch по web_hook.
-    """
-    url=f"{settings.C_REST_WEB_HOOK_URL}/batch.json"+"?"+param+f"&halt={'1' if halt else '0'}"
-    return await send_http_post_request(url,None)
-
-
-@error_catcher("call_batch_сirculation_application")
-async def call_batch_сirculation_application(auth: AuthDTO, calls:list, session: AsyncSession, halt: bool = False) -> Any:
-    """
-    Осуществляет выполнение пакета запросов.
-    Calls:
-    [
-        {
-            "method": "crm.contact.add",
-            "params": {
-                "FIELDS":{
-                    "NAME":"Иван",
-                    "LAST_NAME":"Петров"
-                }
-            }
-        },
-        ...
-    ]
-    """
-    params = call_parameters_encoder_batсh(calls)
-
-    res = []
-
-    for param in params:
-        try:
-            temp_res = await sub_call_batch_сirculation_application(auth, param, session, halt)
-            res.append(temp_res)
-            if halt and "result" in temp_res and "result_error" in temp_res["result"] and temp_res["result"]["result_error"] != []:
-                break
-        except:
-            if halt:
-                break
-
-    # добавить логику работы с огрничениями (очередь)
-
-    if len(res) == 0:
-        raise ExceptionBatchCallError()
-
-    return res
-
-@error_catcher("sub_call_batch_сirculation_application")
+@error_catcher("sub_call_batch")
 @auto_refresh_token()
-async def sub_call_batch_сirculation_application(auth: AuthDTO, param: str, session: AsyncSession, halt: bool = False) -> Any:
+async def sub_call_batch(url_builder: UrlBuilder, param: str, halt: bool = False) -> Any:
     """
-    Вызывает сигмент batch по сirculation_application.
+    Вызывает сигмент batch.
     """
-    url=f"{auth.client_endpoint}/batch.json"+f"?auth={auth.access_token}&"+param+f"&halt={'1' if halt else '0'}"
-    return await send_http_post_request(url,None)
+    return await send_http_post_request(url_builder.build_url("batch",param+f"&halt={'1' if halt else '0'}"),None)
 
 
-async def get_list_web_hook(method:str, params:dict | None = None) -> list:
-    """
-    Выполняет извлечение списка с помощью метода method и параметров params.
-
-    Автоматически сортерует значения по ID ASC.
-    В случае указания DESC также работает.
-    Параметр start устанавливается в -1.
-    """
-    is_id_oder_normal = True
-    if params:
-        if "order" in params:
-            if "ID" in params["order"]:
-                if params["order"]["ID"] == "DESC":
-                    is_id_oder_normal = False
-            else:
-                params["order"]["ID"] = "ASC"
-        else:
-            params["order"] = {
-                "ID":"ASC"
-            }
-    else:
-        params = {
-            "order":{
-                "ID":"ASC"
-            }
-        }
-
-    params["start"] = "-1"
-
-    last_id = None
-
-    result = []
-
-    while True:
-        params_coppy = params.copy()
-        if last_id:
-            if "filter" in params:
-                params_coppy["filter"][f"{">" if is_id_oder_normal else "<"}ID"] = str(last_id)
-
-            else:
-                params_coppy["filter"] = {f"{">" if is_id_oder_normal else "<"}ID": str(last_id)}
-
-        res = await call_url_web_hook(method, params_coppy)
-
-        if len(res["result"]) == 0:
-            break
-        
-        last_id = int(res["result"][len(res["result"])-1]["ID"])
-
-        result.extend(res["result"])
-    
-    return result
-
-
-async def get_list_сirculation_application(auth: AuthDTO,  session: AsyncSession, method:str, params:dict | None = None) -> list:
+async def get_list(url_builder: UrlBuilder, method:str, params:dict | None = None) -> list:
     """
     Выполняет извлечение списка с помощью метода method и параметров params.
 
@@ -514,7 +400,7 @@ async def get_list_сirculation_application(auth: AuthDTO,  session: AsyncSessio
             else:
                 params_coppy["filter"] = {f"{">" if is_id_oder_normal else "<"}ID": str(last_id)}
 
-        res = await call_url_сirculation_application(method, params_coppy, auth, session)
+        res = await call_method(url_builder, method, params_coppy)
 
         if len(res["result"]) == 0:
             break

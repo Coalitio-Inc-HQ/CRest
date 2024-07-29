@@ -10,7 +10,8 @@ from .utils import decode_auth
 from .database.session_database import get_session, AsyncSession
 from .database.database_requests import *
 
-from .call.calls import call_url_сirculation_application, call_batch_сirculation_application,get_list_сirculation_application
+from .call.calls import call_method, call_batch, get_list
+from .call.url_builder import CirculationApplicationUrlBuilder
 
 async def lifespan(app: FastAPI):
     log(LogMessage(time=None,heder="Сервер запущен.", heder_dict=None,body=None,level=log_en.INFO))
@@ -121,8 +122,9 @@ async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: R
                 level=log_en.DEBUG))
 
     auth = await get_auth_by_member_id(session=session, member_id=auth_dict["member_id"])
+    url_bilder = CirculationApplicationUrlBuilder(auth,session)
 
-    res = await call_url_сirculation_application("crm.contact.add",
+    res = await call_method(url_bilder,"crm.contact.add",
                                                  {
                                                     "FIELDS":{
                                                         "NAME": "Иван",
@@ -140,11 +142,10 @@ async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: R
                                                             }
                                                         ]
                                                     }
-                                                 }
-                                                 ,auth, session)
+                                                 })
 
-    res1 = await call_batch_сirculation_application(
-        auth,
+    res1 = await call_batch(
+        url_bilder,
         [
             {
                 "method": "crm.contact.add",
@@ -164,9 +165,7 @@ async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: R
                     }
                 }
             }
-        ],
-        session,
-    )
+        ])
 
     arr = []
     for i in range(46):
@@ -190,9 +189,9 @@ async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: R
                 }
             }
         )
-    res2 = await call_batch_сirculation_application(auth, arr, session, True)
+    res2 = await call_batch(url_bilder, arr, True)
 
-    res3 = await get_list_сirculation_application(auth, session, "crm.contact.list")
+    res3 = await get_list(url_bilder, "crm.contact.list")
 
     return {"res":res, "res1":res1, "res2":res2, "res3": res3}
 
