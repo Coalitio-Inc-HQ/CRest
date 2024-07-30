@@ -32,12 +32,11 @@ class Settings(BaseSettings):
     
 
     BATCH_COUNT: int
-
     RETURN_LIST_COUNT: int
 
     OPERATING_MAX_TIME: int
 
-    APP_HENDLER_ADDRESS:str
+    APP_HANDLER_ADDRESS:str
 
     @property
     def DATABASE_URL_ASINC(self):

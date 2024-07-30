@@ -74,19 +74,3 @@ async def send_http_post_request(url:str, json: Any|None) -> Any:
                     },
                     level=log_en.ERROR))
             raise error
-        
-
-def decode_auth(encoded_string:str) -> dict:
-    """
-    Осуществляет декодирование строки аутентификации.
-    """
-    string = encoded_string[2:-1]
-
-    parsed_components = {}
-    for component in string.split('&'):
-        key, value = component.split('=')
-        if key!="PLACEMENT_OPTIONS":
-            parsed_components[key] = value
-        else:
-            parsed_components[key] = json.loads(unquote_plus(value))
-    return parsed_components

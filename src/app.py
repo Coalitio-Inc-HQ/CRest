@@ -1,11 +1,16 @@
 from fastapi import FastAPI, Body, APIRouter,Request,Depends
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi.datastructures import Default
+
+import json
+
 from .loging.logging_utility import log, LogMessage,log_en
 from .settings import settings
-from .utils import decode_auth
+
+from src.call.сall_parameters_decoder import decode_body_request
 
 from .database.session_database import get_session, AsyncSession
 from .database.database_requests import *
@@ -14,8 +19,9 @@ from .call.calls import call_method, call_batch, get_list
 from .call.url_builder import CirculationApplicationUrlBuilder
 
 from .event_bind import EventBind
+from .placement_bind import PlacementBind
 
-def build_app(event_binds: list[EventBind] | None = None) -> FastAPI:
+def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None) -> FastAPI:
 
     async def lifespan(app: FastAPI):
         log(LogMessage(time=None,heder="Сервер запущен.", heder_dict=None,body=None,level=log_en.INFO))
@@ -43,8 +49,10 @@ def build_app(event_binds: list[EventBind] | None = None) -> FastAPI:
         allow_headers=["*"],
     )
 
-    for event in event_binds:
-        app.include_router(event.hendler_router)
+
+    if routers:
+        for item in routers:
+            app.include_router(item)
 
     router = APIRouter()
 
@@ -60,20 +68,19 @@ def build_app(event_binds: list[EventBind] | None = None) -> FastAPI:
 
 
     @router.post("/install", response_class=HTMLResponse)
-    async def install_post (DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str,request: Request, session: AsyncSession = Depends(get_session)):
-        auth_dict = decode_auth(str(await request.body()))
+    async def install_post (DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str,request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(decode_body_request)):
 
-        print(auth_dict)
+        print(body)
 
-        if (auth_dict["PLACEMENT"]=="DEFAULT"):
+        if (body["PLACEMENT"]=="DEFAULT"):
             auth = AuthDTO(
-                access_token = auth_dict["AUTH_ID"],
-                expires_in = auth_dict["AUTH_EXPIRES"],
-                refresh_token = auth_dict["REFRESH_ID"],
+                access_token = body["AUTH_ID"],
+                expires_in = body["AUTH_EXPIRES"],
+                refresh_token = body["REFRESH_ID"],
                 client_endpoint = f"https://{DOMAIN}/rest/",
-                member_id = auth_dict["member_id"],
+                member_id = body["member_id"],
                 application_token = APP_SID,
-                placement_options = auth_dict["PLACEMENT_OPTIONS"]
+                placement_options = json.loads(body["PLACEMENT_OPTIONS"])
             )
             await insert_auth(session, auth)
 
@@ -88,7 +95,7 @@ def build_app(event_binds: list[EventBind] | None = None) -> FastAPI:
                                 "PROTOCOL":PROTOCOL,
                                 "LANG":LANG,
                                 "APP_SID":APP_SID,
-                                "auth_dict":auth_dict
+                                "auth_dict":body
                             },
                             level=log_en.DEBUG))
             
@@ -100,11 +107,26 @@ def build_app(event_binds: list[EventBind] | None = None) -> FastAPI:
                             "method": "event.bind",
                             "params":{
                                 "event": event.event,
-                                "handler": settings.APP_HENDLER_ADDRESS+event.handler
+                                "handler": settings.APP_HANDLER_ADDRESS+event.handler
                             }
                         }
                     )
                 await call_batch(url_bilder, event_arr)
+
+            if placement_binds:
+                placement_arr = []
+                for placement in placement_binds:
+                    placement_arr.append(
+                        {
+                            "method": "placement.bind",
+                            "params":{
+                                "PLACEMENT": placement.placement,
+                                "HANDLER": settings.APP_HANDLER_ADDRESS+placement.handler,
+                                "TITLE": placement.title
+                            }
+                        }
+                    )
+                await call_batch(url_bilder, placement_arr)
 
             return """
             <head>
@@ -128,8 +150,7 @@ def build_app(event_binds: list[EventBind] | None = None) -> FastAPI:
 
 
     @router.post("/index")
-    async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: Request, session: AsyncSession = Depends(get_session)):
-        auth_dict = decode_auth(str(await request.body()))
+    async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(decode_body_request)):
 
         log(LogMessage(time=None,heder="Init.", 
                     heder_dict={
@@ -140,11 +161,11 @@ def build_app(event_binds: list[EventBind] | None = None) -> FastAPI:
                         "PROTOCOL":PROTOCOL,
                         "LANG":LANG,
                         "APP_SID":APP_SID,
-                        "auth_dict":auth_dict
+                        "auth_dict":body
                     },
                     level=log_en.DEBUG))
 
-        auth = await get_auth_by_member_id(session=session, member_id=auth_dict["member_id"])
+        auth = await get_auth_by_member_id(session=session, member_id=body["member_id"])
         url_bilder = CirculationApplicationUrlBuilder(auth,session)
 
         res = await call_method(url_bilder,"crm.contact.add",
