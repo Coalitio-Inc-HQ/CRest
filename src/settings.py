@@ -37,6 +37,8 @@ class Settings(BaseSettings):
 
     OPERATING_MAX_TIME: int
 
+    APP_HENDLER_ADDRESS:str
+
     @property
     def DATABASE_URL_ASINC(self):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"

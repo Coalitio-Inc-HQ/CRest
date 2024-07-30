@@ -110,12 +110,12 @@ def call_parameters_encoder_batсh(calls: list) -> list[str]:
     count = 0
 
     for key, call in enumerate(calls):
-        curent_call.append(f"cmd[{str(key+1)}]="+quote(call["method"]+"?"+call_parameters_encoder(call["params"])))
-        count+=1
         if (count==settings.BATCH_COUNT):
             count = 0
             curent_call = []
             prepared_calls.append(curent_call)
+        curent_call.append(f"cmd[{str(key+1)}]="+quote(call["method"]+"?"+call_parameters_encoder(call["params"])))
+        count+=1
 
     return ["&".join(prepared_call) for prepared_call in prepared_calls]
 

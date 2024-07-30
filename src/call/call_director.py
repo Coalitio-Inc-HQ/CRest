@@ -116,29 +116,30 @@ class CallDirectorBarrelStrategy(CallDirector):
         
         domain_info["number_of_requests"]+=1
 
-        while True:
-            try:
-                res = await send_http_post_request_url_builder(url_builder,method, call_parameters_encoder(params))
+        try:
+            while True:
+                try:
+                    res = await send_http_post_request_url_builder(url_builder,method, call_parameters_encoder(params))
+
+                    if "error" in res:
+                        if res["error"] =="OPERATION_TIME_LIMIT":
+                            raise self.Exception503()
+
+                    break
+
+                except self.Exception503 as error:
+                    time.sleep(1)
+                except HTTPStatusError as error: 
+                        if error.response.status_code == 503:
+                            time.sleep(1)
+                        else:
+                            raise error
 
                 if "error" in res:
-                    if res["error"] =="OPERATION_TIME_LIMIT":
-                        raise self.Exception503()
-
-                break
-
-            except self.Exception503 as error:
-                time.sleep(1)
-            except HTTPStatusError as error: 
-                    if error.response.status_code == 503:
-                        time.sleep(1)
-                    else:
-                        raise error
-
-            if "error" in res:
-                    if res["error"] == "QUERY_LIMIT_EXCEEDED":
-                        raise self.Exception503()
-
-        domain_info["number_of_requests"]-=1
+                        if res["error"] == "QUERY_LIMIT_EXCEEDED":
+                            raise self.Exception503()
+        finally:
+            domain_info["number_of_requests"]-=1
 
         return res
 
@@ -151,34 +152,35 @@ class CallDirectorBarrelStrategy(CallDirector):
         
         domain_info["number_of_requests"]+=1
 
+        try:
+            while True:
+                try:
+                    res = await send_http_post_request_url_builder(url_builder,method, param)
 
-        while True:
-            try:
-                res = await send_http_post_request_url_builder(url_builder,method, param)
+                    if "result_error" in res["result"]:
+                        if type(res["result"]["result_error"]) == dict:
+                            for key, value in res["result"]["result_error"].items():
+                                if "error" in value and value["error"] == "OPERATION_TIME_LIMIT":
+                                    raise self.Exception503()
 
-                if "result_error" in res["result"]:
-                    if type(res["result"]["result_error"]) == dict:
-                        for key, value in res["result"]["result_error"].items():
-                            if "error" in value and value["error"] == "OPERATION_TIME_LIMIT":
-                                raise self.Exception503()
+                    if "error" in res:
+                        if res["error"] == "QUERY_LIMIT_EXCEEDED":
+                            raise self.Exception503()
 
-                if "error" in res:
-                    if res["error"] == "QUERY_LIMIT_EXCEEDED":
-                        raise self.Exception503()
+                    break
+                except self.Exception503 as error:
+                    print("Превышен operating")
+                    time.sleep(1)
 
-                break
-            except self.Exception503 as error:
-                print("Превышен operating")
-                time.sleep(1)
+                except HTTPStatusError as error: 
+                        if error.response.status_code == 503:
+                            print("Превышен operating")
+                            time.sleep(1)
+                        else:
+                            raise error
 
-            except HTTPStatusError as error: 
-                    if error.response.status_code == 503:
-                        print("Превышен operating")
-                        time.sleep(1)
-                    else:
-                        raise error
-
-        domain_info["number_of_requests"]-=1
+        finally:
+            domain_info["number_of_requests"]-=1
 
         return res
 

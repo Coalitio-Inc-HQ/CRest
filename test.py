@@ -21,32 +21,23 @@ async def run():
     #                                 )
     #   print(res)
 
-    for x in range(300):
-      arr = []
-      for i in range(46):
-          arr.append(
-              {
-                  "method": "crm.contact.add",
-                  "params":{
-                      "FIELDS":{
-                          "NAME":f"Иван{i}",
-                          "LAST_NAME":f"Петров{i}"
-                      }
-                  }
-              }
-          )
+    for i in range(50):
+        arr = []
+        for i in range(45):
+            arr.append(
+                {
+                    "method": "crm.contact.add",
+                    "params":{
+                        "FIELDS":{
+                            "NAME":f"Иван{i}",
+                            "LAST_NAME":f"Петров{i}"
+                        }
+                    }
+                }
+            )
 
-      # arr.insert(10,
-      #         {
-      #             "method": "crm.contact.add",
-      #             "params":{
-      #                 "FIELDS":"NAME"
-      #             }
-      #         }
-      #     )
-
-      res1 = await call_batch(web_hook_url_builder,arr,)
-      print(res1)
+        res1 = await call_batch(web_hook_url_builder,arr,)
+        print(res1)
 
 
     # lis = await get_list( web_hook_url_builder,"crm.contact.list")
@@ -64,5 +55,23 @@ async def run():
     #     print(item)
     #     count +=1
     # print(count)
+
+    for i in range(50):
+        arr=[]
+        count = 0
+        async for item in get_list_generator( web_hook_url_builder,"crm.contact.list"):
+            arr.append(
+                {
+                    "method": "crm.contact.delete",
+                    "params":{
+                        "ID": str(item["ID"])
+                    }
+                }
+            )
+            count+=1
+            print(count)
+            if count == 45:
+                break
+        print(await call_batch(web_hook_url_builder, arr))
 
 asyncio.run(run())

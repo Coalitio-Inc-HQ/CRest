@@ -13,7 +13,7 @@ async def send_http_post_request_url_builder(url_builder: UrlBuilder, method:str
     Отправляет post запрос.
     Учитывет редикт.
     """
-    async with AsyncClient() as clinet:
+    async with AsyncClient(timeout=10.0) as clinet:
         try:
             response = await clinet.post(url_builder.build_url(method, param))
             if response.status_code == 302:
