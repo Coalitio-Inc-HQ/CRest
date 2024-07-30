@@ -1,7 +1,5 @@
 from .call_parameters_encoder.сall_parameters_encoder import call_parameters_encoder,call_parameters_encoder_batсh
 from ..utils import send_http_post_request, send_http_post_request_url_builder
-from src.database.schemes import AuthDTO
-from src.database.database_requests import update_auth, AsyncSession
 from src.settings import settings
 
 from .url_builder import UrlBuilder
@@ -9,6 +7,8 @@ from .url_builder import UrlBuilder
 from httpx import HTTPStatusError
 
 from src.loging.logging_utility import log, LogMessage,log_en, filter_array_to_str, filter_dict_to_str
+
+from .call_director import barrel_strategy_call_director
 
 from typing import Any
 
@@ -18,9 +18,6 @@ import inspect
 import math
 """
 TODO
-Ввести ограничение времени запроса.
-https://dev.1c-bitrix.ru/rest_help/rest_sum/index.php.
-
 Пулы.
 """
 
@@ -240,8 +237,7 @@ async def call_method(url_builder: UrlBuilder, method:str, params:dict) -> Any:
         }
     }
     """
-    res = await send_http_post_request_url_builder(url_builder, method, call_parameters_encoder(params))
-    # добавить логику работы с огрничениями (очередь)
+    res = await barrel_strategy_call_director.call_request(url_builder, method, params)
 
     return res
 
@@ -343,7 +339,6 @@ async def call_batch(url_builder: UrlBuilder, calls:list, halt: bool = False) ->
             if halt:
                 break
 
-    # добавить логику работы с огрничениями (очередь)
 
     if len(res) == 0:
         raise ExceptionBatchCallError()
@@ -357,7 +352,7 @@ async def sub_call_batch(url_builder: UrlBuilder, param: str, halt: bool = False
     """
     Вызывает сигмент batch.
     """
-    return await send_http_post_request_url_builder(url_builder,"batch",param+f"&halt={'1' if halt else '0'}")
+    return await barrel_strategy_call_director.call_bath_request(url_builder,"batch",param+f"&halt={'1' if halt else '0'}")
 
 
 async def get_list(url_builder: UrlBuilder, method:str, params:dict | None = None) -> list:

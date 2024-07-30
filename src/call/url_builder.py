@@ -27,6 +27,9 @@ class UrlBuilder:
     async def update_domain(self, domain: str) -> None:
         pass
 
+    def get_member_id(self) -> str:
+        pass
+
 
 class WebHookUrlBuilder(UrlBuilder):
     def __init__(self) -> None:
@@ -35,6 +38,10 @@ class WebHookUrlBuilder(UrlBuilder):
 
     def build_url (self, method:str, params: str) -> str:
         return f"{settings.C_REST_WEB_HOOK_URL}/{method}.{self.strategy}"+"?"+params
+    
+
+    def get_member_id(self) -> str:
+        return settings.C_REST_WEB_HOOK_URL
     
 
 class CirculationApplicationUrlBuilder(UrlBuilder):
@@ -63,6 +70,9 @@ class CirculationApplicationUrlBuilder(UrlBuilder):
     async def update_domain(self, domain: str) -> None:
         await update_auth_domain(self.session, self.auth.member_id, domain)
         self.auth.client_endpoint = domain
+
+    def get_member_id(self) -> str:
+        return self.auth.member_id
 
 
 web_hook_url_builder = WebHookUrlBuilder()
