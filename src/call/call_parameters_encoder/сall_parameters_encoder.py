@@ -80,7 +80,7 @@ def call_parameters_encoder_recursion(params: dict | list) -> list:
     return list_params
 
 
-def call_parameters_encoder_batсh(calls: list) -> list[str]:
+def call_parameters_encoder_batсh(calls: list, start: int, end: int) -> str:
     """
     !!! Примечание кодирование массива начинается с 1 т.к. в таком случае в ответе содержатся индексы.
     !!! Также если, происходит ошибка в первом методе, то он не нумеруется.
@@ -100,24 +100,42 @@ def call_parameters_encoder_batсh(calls: list) -> list[str]:
         },
         ...
     ]
-    res = ["cmd[1]crm.contact.add%3FFIELDS%5BNAME%5D%3D%25D0%2598%25D0%25B2%25D0%25B0%25D0%25BD1%26FIELDS%5BLAST_NAME%5D%3D%25D0%259F%25D0%25B5%25D1%2582%25D1%2580%25D0%25BE%25D0%25B21&cmd[2]crm.contact.add%3FFIELDS%5BNAME%5D%3D%25D0%2598%25D0%25B2%25D0%25B0%25D0%25BD2%26FIELDS%5BLAST_NAME%5D%3D%25D0%259F%25D0%25B5%25D1%2582%25D1%2580%25D0%25BE%25D0%25B22"]
+    res = "cmd[1]crm.contact.add%3FFIELDS%5BNAME%5D%3D%25D0%2598%25D0%25B2%25D0%25B0%25D0%25BD1%26FIELDS%5BLAST_NAME%5D%3D%25D0%259F%25D0%25B5%25D1%2582%25D1%2580%25D0%25BE%25D0%25B21&cmd[2]crm.contact.add%3FFIELDS%5BNAME%5D%3D%25D0%2598%25D0%25B2%25D0%25B0%25D0%25BD2%26FIELDS%5BLAST_NAME%5D%3D%25D0%259F%25D0%25B5%25D1%2582%25D1%2580%25D0%25BE%25D0%25B22"
     """
-    prepared_calls = []
+    call = []
+    for i in range(end-start):
+        index = i + start
+        call.append(f"cmd[{str(index+1)}]="+quote(calls[index]["method"]+"?"+call_parameters_encoder(calls[index]["params"])))
 
-    curent_call = []
+    return "&".join(call)
 
-    prepared_calls.append(curent_call)
-    count = 0
 
-    for key, call in enumerate(calls):
-        if (count==settings.BATCH_COUNT):
-            count = 0
-            curent_call = []
-            prepared_calls.append(curent_call)
-        curent_call.append(f"cmd[{str(key+1)}]="+quote(call["method"]+"?"+call_parameters_encoder(call["params"])))
-        count+=1
+def call_parameters_encoder_batсh_by_index(calls: list, index:list[int]) -> str:
+    """
+    !!! Примечание кодирование массива начинается с 1 т.к. в таком случае в ответе содержатся индексы.
+    !!! Также если, происходит ошибка в первом методе, то он не нумеруется.
+    !!! По этому нумерация с 1.
 
-    return ["&".join(prepared_call) for prepared_call in prepared_calls]
+    Принемает пакет запросов и приобразовывает его в строки параметров.
+    Calls:
+    [
+        {
+            "method": "crm.contact.add",
+            "params": {
+                "FIELDS":{
+                    "NAME":"Иван",
+                    "LAST_NAME":"Петров"
+                }
+            }
+        },
+        ...
+    ]
+    res = "cmd[1]crm.contact.add%3FFIELDS%5BNAME%5D%3D%25D0%2598%25D0%25B2%25D0%25B0%25D0%25BD1%26FIELDS%5BLAST_NAME%5D%3D%25D0%259F%25D0%25B5%25D1%2582%25D1%2580%25D0%25BE%25D0%25B21&cmd[2]crm.contact.add%3FFIELDS%5BNAME%5D%3D%25D0%2598%25D0%25B2%25D0%25B0%25D0%25BD2%26FIELDS%5BLAST_NAME%5D%3D%25D0%259F%25D0%25B5%25D1%2582%25D1%2580%25D0%25BE%25D0%25B22"
+    """
+    call = []
+    for i in index:
+        call.append(f"cmd[{str(i+1)}]="+quote(calls[i]["method"]+"?"+call_parameters_encoder(calls[i]["params"])))
 
+    return "&".join(call)
     
     

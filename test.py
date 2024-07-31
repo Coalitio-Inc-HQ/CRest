@@ -21,9 +21,9 @@ async def run():
     #                                 )
     #   print(res)
 
-    for i in range(50):
+    for i in range(1000):
         arr = []
-        for i in range(45):
+        for i in range(100):
             arr.append(
                 {
                     "method": "crm.contact.add",
@@ -36,7 +36,19 @@ async def run():
                 }
             )
 
-        res1 = await call_batch(web_hook_url_builder,arr,)
+        # arr.insert(50,
+        #         {
+        #             "method": "crm.contac1t.add",
+        #             "params":{
+        #                 "FIELDS":{
+        #                     "NAME":f"Иван{i}",
+        #                     "LAST_NAME":f"Петров{i}"
+        #                 }
+        #             }
+        #         }
+        #     )
+
+        res1 = await call_batch(web_hook_url_builder,arr)
         print(res1)
 
 
@@ -56,22 +68,22 @@ async def run():
     #     count +=1
     # print(count)
 
-    for i in range(50):
-        arr=[]
-        count = 0
-        async for item in get_list_generator( web_hook_url_builder,"crm.contact.list"):
-            arr.append(
-                {
-                    "method": "crm.contact.delete",
-                    "params":{
-                        "ID": str(item["ID"])
-                    }
-                }
-            )
-            count+=1
-            print(count)
-            if count == 45:
-                break
-        print(await call_batch(web_hook_url_builder, arr))
+    # for i in range(50):
+    #     arr=[]
+    #     count = 0
+    #     async for item in get_list_generator( web_hook_url_builder,"crm.contact.list"):
+    #         arr.append(
+    #             {
+    #                 "method": "crm.contact.delete",
+    #                 "params":{
+    #                     "ID": str(item["ID"])
+    #                 }
+    #             }
+    #         )
+    #         count+=1
+    #         print(count)
+    #         if count == 45:
+    #             break
+    #     print(await call_batch(web_hook_url_builder, arr))
 
 asyncio.run(run())

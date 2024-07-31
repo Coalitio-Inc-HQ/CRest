@@ -1,7 +1,7 @@
 import uvicorn
 from src.app import build_app
 from src.settings import settings
-from src.call.сall_parameters_decoder import decode_body_request
+from src.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
 
 from src.event_bind import EventBind
 

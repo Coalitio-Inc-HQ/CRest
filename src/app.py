@@ -10,7 +10,7 @@ import json
 from .loging.logging_utility import log, LogMessage,log_en
 from .settings import settings
 
-from src.call.сall_parameters_decoder import decode_body_request
+from src.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
 
 from .database.session_database import get_session, AsyncSession
 from .database.database_requests import *
@@ -53,6 +53,7 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
     if routers:
         for item in routers:
             app.include_router(item)
+
 
     router = APIRouter()
 

@@ -19,9 +19,12 @@ def call_parameters_decoder(string: str) -> dict:
             if (i+1==len(keys)):
                 last_dict[keys[i]] = value
             else:
-                new = {}
-                last_dict[keys[i]] = new
-                last_dict = new
+                if keys[i] in last_dict:
+                    last_dict = last_dict[keys[i]]
+                else:
+                    new = {}
+                    last_dict[keys[i]] = new
+                    last_dict = new
 
     return res
 

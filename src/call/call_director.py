@@ -1,12 +1,19 @@
 from typing import Any
 from src.call.url_builder import UrlBuilder
-from src.utils import send_http_post_request_url_builder
 import datetime
 from src.settings import settings
 import time
-from .call_parameters_encoder.сall_parameters_encoder import call_parameters_encoder,call_parameters_encoder_batсh
+from .call_parameters_encoder.сall_parameters_encoder import call_parameters_encoder,call_parameters_encoder_batсh, call_parameters_encoder_batсh_by_index
+
+
+import asyncio    
+
+from .call_execute import call_execute
 
 from httpx import HTTPStatusError
+
+class ExceptionCallError(Exception):
+    error: str
 
 class CallDirector:
     """
@@ -16,6 +23,9 @@ class CallDirector:
     3) Окончательная сборка запроса (Почему именно здесь? - Потому, что именно здесь можно осуществлять компоновку зпросов в batch).
     """
     async def call_request(self,url_builder: UrlBuilder, method:str, params:dict) -> Any:
+        pass
+
+    async def call_bath_request(self,url_builder: UrlBuilder, method:str,param: str) -> Any:
         pass
 
 
@@ -52,137 +62,271 @@ class CallDirectorBarrelStrategy(CallDirector):
             self.domains_data[url_builder.get_member_id()] = domain_info
             return domain_info
 
-    # @staticmethod
-    # def chek_method(domain_info: dict, method:str) -> bool:
-    #     """
-    #     Проверяет ограничения для доменной зоны.
-    #     1 - достигнуто ограничение.
-    #     """
-    #     if not method in domain_info["method_operating"]:
-    #         method_operating_info = {
-    #             "sum_time": 0,
-    #             "operating_reset_at": datetime.datetime.now()
-    #         }
-    #         domain_info["method_operating"][method]= method_operating_info
-    #         return False
-    #     else:
-    #         method_operating_info = domain_info["method_operating"][method]
-
-    #         if method_operating_info["operating_reset_at"]<datetime.datetime.now():
-    #             return False
-    #         elif method_operating_info["sum_time"]<settings.OPERATING_MAX_TIME:
-    #             return False
-    #         else:
-    #             return True
-    
-    # @staticmethod
-    # def update_method_info(domain_info: dict, method:str, operating: float, operating_reset_at: datetime.datetime):
-    #     method_info = domain_info["method_operating"][method]
-
-    #     if operating_reset_at != method_info["operating_reset_at"]:
-    #         method_info["operating_reset_at"] = operating_reset_at
-    #         method_info["sum_time"] = operating
-    #     else:
-    #         method_info["sum_time"]+= operating
-
-
-
-    # async def call_request(self,url_builder: UrlBuilder, method:str, params:dict) -> Any:
-    #     domain_info = self.get_domain_info(url_builder)
-
-    #     while domain_info["number_of_requests"]>70 or self.chek_method(domain_info, method):
-    #         time.sleep(0.5)
-        
-    #     domain_info["number_of_requests"]+=1
-
-    #     res = await send_http_post_request_url_builder(url_builder,method, call_parameters_encoder(params))
-
-    #     domain_info["number_of_requests"]-=1
-
-    #     if "time" in res:
-    #             self.update_method_info(domain_info, method, float(res["time"]["operating"]), datetime.datetime.fromtimestamp(res["time"]["operating_reset_at"]))
-
-    #     return res
-
-
-    # async def call_bath_request(self,url_builder: UrlBuilder, method:str,param: str) -> Any:
-    #     pass
     
     async def call_request(self,url_builder: UrlBuilder, method:str, params:dict) -> Any:
         domain_info = self.get_domain_info(url_builder)
 
         while domain_info["number_of_requests"]>70:
-            time.sleep(0.5)
+            await asyncio.sleep(0.5)
         
         domain_info["number_of_requests"]+=1
-
         try:
             while True:
                 try:
-                    res = await send_http_post_request_url_builder(url_builder,method, call_parameters_encoder(params))
+                    res = await call_execute(url_builder,method, call_parameters_encoder(params))
 
                     if "error" in res:
                         if res["error"] =="OPERATION_TIME_LIMIT":
                             raise self.Exception503()
-
+                        elif res["error"] == "QUERY_LIMIT_EXCEEDED":
+                            raise self.Exception503()
                     break
 
                 except self.Exception503 as error:
-                    time.sleep(1)
+                    await asyncio.sleep(1)
                 except HTTPStatusError as error: 
                         if error.response.status_code == 503:
-                            time.sleep(1)
+                            await asyncio.sleep(1)
                         else:
                             raise error
-
-                if "error" in res:
-                        if res["error"] == "QUERY_LIMIT_EXCEEDED":
-                            raise self.Exception503()
         finally:
             domain_info["number_of_requests"]-=1
 
         return res
 
 
-    async def call_bath_request(self,url_builder: UrlBuilder, method:str,param: str) -> Any:
+    # async def call_bath_request(self,url_builder: UrlBuilder, method:str,param: str) -> Any:
+    #     domain_info = self.get_domain_info(url_builder)
+
+    #     while domain_info["number_of_requests"]>70:
+    #         time.sleep(0.5)
+        
+    #     domain_info["number_of_requests"]+=1
+
+    #     try:
+    #         while True:
+    #             try:
+    #                 res = await send_http_post_request_url_builder(url_builder,method, param)
+
+    #                 if "result_error" in res["result"]:
+    #                     if type(res["result"]["result_error"]) == dict:
+    #                         for key, value in res["result"]["result_error"].items():
+    #                             if "error" in value and value["error"] == "OPERATION_TIME_LIMIT":
+    #                                 raise self.Exception503()
+
+    #                 if "error" in res:
+    #                     if res["error"] == "QUERY_LIMIT_EXCEEDED":
+    #                         raise self.Exception503()
+
+    #                 break
+    #             except self.Exception503 as error:
+    #                 print("Превышен operating")
+    #                 time.sleep(1)
+
+    #             except HTTPStatusError as error: 
+    #                     if error.response.status_code == 503:
+    #                         print("Превышен operating")
+    #                         time.sleep(1)
+    #                     else:
+    #                         raise error
+
+    #     finally:
+    #         domain_info["number_of_requests"]-=1
+
+    #     return res
+
+
+    async def call_bath_request(self,url_builder: UrlBuilder,calls:list, halt: bool) -> Any:
         domain_info = self.get_domain_info(url_builder)
 
         while domain_info["number_of_requests"]>70:
-            time.sleep(0.5)
+            await asyncio.sleep(0.5)
         
         domain_info["number_of_requests"]+=1
 
         try:
-            while True:
-                try:
-                    res = await send_http_post_request_url_builder(url_builder,method, param)
+            if halt:
+                total_res = {
+                    "result":{
+                        "result":{
 
-                    if "result_error" in res["result"]:
-                        if type(res["result"]["result_error"]) == dict:
-                            for key, value in res["result"]["result_error"].items():
-                                if "error" in value and value["error"] == "OPERATION_TIME_LIMIT":
-                                    raise self.Exception503()
+                        },
+                        "result_error":{
 
-                    if "error" in res:
-                        if res["error"] == "QUERY_LIMIT_EXCEEDED":
-                            raise self.Exception503()
+                        },
+                        "result_time":{
 
-                    break
-                except self.Exception503 as error:
-                    print("Превышен operating")
-                    time.sleep(1)
+                        }
+                    }
+                }
+                start_index = 0
+                
+                while start_index != len(calls):
+                    end_index = start_index+settings.BATCH_COUNT if start_index+settings.BATCH_COUNT<= len(calls) else len(calls)
+                    build_params = call_parameters_encoder_batсh(calls, start_index, end_index)+f"&halt=1"
 
-                except HTTPStatusError as error: 
-                        if error.response.status_code == 503:
-                            print("Превышен operating")
-                            time.sleep(1)
-                        else:
-                            raise error
+                    try:
+                        res = await call_execute(url_builder,"batch", build_params)
+
+                        if "error" in res:
+                            if res["error"] =="OPERATION_TIME_LIMIT":
+                                raise self.Exception503()
+                            elif res["error"] == "QUERY_LIMIT_EXCEEDED":
+                                raise self.Exception503()
+                            else:
+                                break
+                            
+                        if (type(res["result"]["result"]) ==dict):
+                            last_index = -1
+                            for key, value in res["result"]["result"].items():
+                                total_res["result"]["result"][key] = value
+                                if int(key)>last_index:
+                                    last_index = int(key)
+                            start_index = last_index
+
+                        if (type(res["result"]["result_time"]) ==dict):
+                            for key, value in res["result"]["result_time"].items():
+                                total_res["result"]["result_time"][key] = value
+
+
+                        if "result_error" in res["result"]:
+                            if type(res["result"]["result_error"]) == dict:
+                                ex = False
+                                for key, value in res["result"]["result_error"].items():
+                                    if "error" in value and value["error"] == "OPERATION_TIME_LIMIT":
+                                        raise self.Exception503()
+                                    else:
+                                        total_res["result"]["result_error"][key]=value
+                                        ex = True
+                                        break
+                                if ex:
+                                    break
+                        
+
+                    except self.Exception503 as error:
+                        await asyncio.sleep(1)
+                    except HTTPStatusError as error: 
+                            if error.response.status_code == 503:
+                                await asyncio.sleep(1)
+                            else:
+                                raise error
+                return total_res
+
+
+            else:
+                total_res = {
+                    "result":{
+                        "result":{
+
+                        },
+                        "result_error":{
+
+                        },
+                        "result_time":{
+
+                        }
+                    }
+                }
+                start_index = 0
+                
+                fails = []
+
+                while start_index != len(calls):
+                    end_index = start_index+settings.BATCH_COUNT if start_index+settings.BATCH_COUNT<= len(calls) else len(calls)
+                    build_params = call_parameters_encoder_batсh(calls, start_index, end_index)+f"&halt=0"
+
+                    try:
+                        res = await call_execute(url_builder,"batch", build_params)
+
+                        if "error" in res:
+                            if res["error"] =="OPERATION_TIME_LIMIT":
+                                raise self.Exception503()
+                            elif res["error"] == "QUERY_LIMIT_EXCEEDED":
+                                raise self.Exception503()
+                            else:
+                                break
+                        
+                        last_index = -1
+                        if (type(res["result"]["result"]) ==dict):
+                            for key, value in res["result"]["result"].items():
+                                total_res["result"]["result"][key] = value
+                                if int(key)>last_index:
+                                    last_index = int(key)
+                        
+
+                        if (type(res["result"]["result_time"]) ==dict):
+                            for key, value in res["result"]["result_time"].items():
+                                total_res["result"]["result_time"][key] = value
+
+
+                        if "result_error" in res["result"]:
+                            if type(res["result"]["result_error"]) == dict:
+                                for key, value in res["result"]["result_error"].items():
+                                    if "error" in value and value["error"] == "OPERATION_TIME_LIMIT":
+                                        fails.append(int(key)-1)
+                                    else:
+                                        total_res["result"]["result_error"][key]=value
+                                    last_index = int(key)
+                        start_index = last_index
+                                        
+                        
+
+                    except self.Exception503 as error:
+                        await asyncio.sleep(1)
+                    except HTTPStatusError as error: 
+                            if error.response.status_code == 503:
+                                await asyncio.sleep(1)
+                            else:
+                                raise error
+                            
+                while len(fails)!= 0:
+                    build_params = call_parameters_encoder_batсh_by_index(calls, fails[0:settings.BATCH_COUNT])+f"&halt=0"
+
+                    try:
+                        res = await call_execute(url_builder,"batch", build_params)
+
+                        if "error" in res:
+                            if res["error"] =="OPERATION_TIME_LIMIT":
+                                raise self.Exception503()
+                            elif res["error"] == "QUERY_LIMIT_EXCEEDED":
+                                raise self.Exception503()
+                            else:
+                                break
+                        
+                        if (type(res["result"]["result"]) ==dict):
+                            for key, value in res["result"]["result"].items():
+                                total_res["result"]["result"][key] = value
+                                fails.remove(int(key)-1)
+
+                        if (type(res["result"]["result_time"]) ==dict):
+                            for key, value in res["result"]["result_time"].items():
+                                total_res["result"]["result_time"][key] = value
+
+                        if "result_error" in res["result"]:
+                            if type(res["result"]["result_error"]) == dict:
+                                for key, value in res["result"]["result_error"].items():
+                                    if "error" in value and value["error"] == "OPERATION_TIME_LIMIT":
+                                        pass
+                                    else:
+                                        total_res["result"]["result_error"][key]=value
+                                        fails.remove(int(key)-1)
+                                        
+                        
+
+                    except self.Exception503 as error:
+                        await asyncio.sleep(1)
+                    except HTTPStatusError as error: 
+                            if error.response.status_code == 503:
+                                await asyncio.sleep(1)
+                            else:
+                                raise error
+
+
+                return total_res
 
         finally:
             domain_info["number_of_requests"]-=1
 
-        return res
 
     class Exception503(Exception):
         pass
