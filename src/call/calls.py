@@ -1,5 +1,4 @@
 from .call_parameters_encoder.сall_parameters_encoder import call_parameters_encoder,call_parameters_encoder_batсh
-from ..utils import send_http_post_request, send_http_post_request_url_builder
 from src.settings import settings
 
 from .url_builder import UrlBuilder
@@ -32,7 +31,6 @@ class ExceptionAuth(Exception):
 
 class ExceptionKargAuthNotFound(Exception):
     pass
-
 
 
 class ExceptionBatchCallError(Exception):
@@ -124,7 +122,6 @@ async def call_method(url_builder: UrlBuilder, method:str, params:dict) -> Any:
     res = await barrel_strategy_call_director.call_request(url_builder, method, params)
 
     return res
-
 
 
 @error_catcher("call_batch")

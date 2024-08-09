@@ -16,22 +16,38 @@ from fastapi.responses import HTMLResponse
 router = APIRouter()
 
 @router.post("/onCrmContactAdd")
-async def onCrmContactAdd(params: dict | None = Depends(decode_body_request)):
+async def onCrmContactAdd(request: Request, params: dict | None = Depends(decode_body_request)):
+    form = await request.form() 
+    print(dict(form))
     print(params)
 
 
-@router.post("/LEFT_MENU", response_class=HTMLResponse)
+@router.post("/LEFT_MENU")
 async def onCrmContactAdd(params: dict | None = Depends(decode_body_request)):
-    return """
-    <body>
-        welcome!
-    </body>
-    """
+    return params
+
+@router.post("/CRM_LEAD_DETAIL_ACTIVITY	")
+async def onCrmContactAdd(params: dict | None = Depends(decode_body_request)):
+    return params
+
+@router.post("/settings")
+async def onCrmContactAdd(params: dict | None = Depends(decode_body_request)):
+    return params
+
+@router.post("/onAppInstall")
+async def onCrmContactAdd(params: dict | None = Depends(decode_body_request)):
+    return params
+
 
 app = build_app(
     routers=[router],
-    event_binds=[EventBind("onCrmContactAdd", "/onCrmContactAdd")],
-    placement_binds= [PlacementBind("welcome!", "LEFT_MENU", "/LEFT_MENU")]
+    event_binds=[EventBind("onCrmContactAdd", "/onCrmContactAdd"),
+                 EventBind("onAppInstall", "/onAppInstall")
+                 ],
+    placement_binds= [PlacementBind("welcome!", "LEFT_MENU", "/LEFT_MENU"),
+                      PlacementBind("settings", "LANDING_SETTINGS", "/settings"),
+                      PlacementBind("CRM_LEAD_DETAIL_ACTIVITY", "CRM_LEAD_DETAIL_ACTIVITY", "/CRM_LEAD_DETAIL_ACTIVITY")
+                      ]
     )
 
 uvicorn.run(app, host=settings.APP_HOST, port=settings.APP_PORT)

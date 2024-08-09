@@ -5,7 +5,6 @@ from src.settings import settings
 import time
 from .call_parameters_encoder.сall_parameters_encoder import call_parameters_encoder,call_parameters_encoder_batсh, call_parameters_encoder_batсh_by_index
 
-
 import asyncio    
 
 from .call_execute import call_execute
@@ -93,47 +92,6 @@ class CallDirectorBarrelStrategy(CallDirector):
             domain_info["number_of_requests"]-=1
 
         return res
-
-
-    # async def call_bath_request(self,url_builder: UrlBuilder, method:str,param: str) -> Any:
-    #     domain_info = self.get_domain_info(url_builder)
-
-    #     while domain_info["number_of_requests"]>70:
-    #         time.sleep(0.5)
-        
-    #     domain_info["number_of_requests"]+=1
-
-    #     try:
-    #         while True:
-    #             try:
-    #                 res = await send_http_post_request_url_builder(url_builder,method, param)
-
-    #                 if "result_error" in res["result"]:
-    #                     if type(res["result"]["result_error"]) == dict:
-    #                         for key, value in res["result"]["result_error"].items():
-    #                             if "error" in value and value["error"] == "OPERATION_TIME_LIMIT":
-    #                                 raise self.Exception503()
-
-    #                 if "error" in res:
-    #                     if res["error"] == "QUERY_LIMIT_EXCEEDED":
-    #                         raise self.Exception503()
-
-    #                 break
-    #             except self.Exception503 as error:
-    #                 print("Превышен operating")
-    #                 time.sleep(1)
-
-    #             except HTTPStatusError as error: 
-    #                     if error.response.status_code == 503:
-    #                         print("Превышен operating")
-    #                         time.sleep(1)
-    #                     else:
-    #                         raise error
-
-    #     finally:
-    #         domain_info["number_of_requests"]-=1
-
-    #     return res
 
 
     async def call_bath_request(self,url_builder: UrlBuilder,calls:list, halt: bool) -> Any:

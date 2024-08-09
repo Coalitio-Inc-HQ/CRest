@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Body, APIRouter,Request,Depends
+from fastapi import FastAPI, Body, APIRouter,Request,Depends, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +21,8 @@ from .call.url_builder import CirculationApplicationUrlBuilder
 from .event_bind import EventBind
 from .placement_bind import PlacementBind
 
+from src.body_preparer import BodyPreparer
+
 def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None) -> FastAPI:
 
     async def lifespan(app: FastAPI):
@@ -29,6 +31,8 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
         log(LogMessage(time=None,heder="Сервер остановлен.", heder_dict=None,body=None,level=log_en.INFO))
 
     app = FastAPI(lifespan=lifespan)
+
+    app.add_middleware(BodyPreparer)
 
     @app.exception_handler(Exception)
     async def exception_handler(request: Request, error: Exception):
@@ -69,7 +73,10 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
 
 
     @router.post("/install", response_class=HTMLResponse)
-    async def install_post (DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str,request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(decode_body_request)):
+    async def install_post (DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str,request: Request,  session: AsyncSession = Depends(get_session), body: dict | None = Depends(decode_body_request)):
+        
+        form = await request.form() 
+        print(form)
 
         print(body)
 
@@ -236,9 +243,11 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
             )
         res2 = await call_batch(url_bilder, arr, True)
 
-        res3 = await get_list(url_bilder, "crm.contact.list")
+        # res3 = await get_list(url_bilder, "crm.contact.list")
 
-        return {"res":res, "res1":res1, "res2":res2, "res3": res3}
+        return {"res":res, "res1":res1, "res2":res2, 
+                # "res3": res3
+                }
 
     app.include_router(router, tags=["webhook"])
 
