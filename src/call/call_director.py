@@ -24,7 +24,7 @@ class CallDirector:
     async def call_request(self,url_builder: UrlBuilder, method:str, params:dict) -> Any:
         pass
 
-    async def call_bath_request(self,url_builder: UrlBuilder, method:str,param: str) -> Any:
+    async def call_bath_request(self,url_builder: UrlBuilder,calls:list, halt: bool) -> Any:
         pass
 
 
