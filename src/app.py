@@ -16,7 +16,7 @@ from .database.session_database import get_session, AsyncSession
 from .database.database_requests import *
 
 from src.call.calls import CallAPIBitrix
-from src.call.url_bilders.circulation_application_url_builder import CirculationApplicationUrlBuilder
+from src.call.url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder
 
 from .event_bind import EventBind
 from .placement_bind import PlacementBind
@@ -26,9 +26,9 @@ from src.body_preparer import BodyPreparer
 
 from src.call.call_director import CallDirectorBarrelStrategy
 
-from src.call.url_bilders.oauth2_url_builder import OAuth2UrlBuilder
+from src.call.url_builders.oauth2_url_builder import OAuth2UrlBuilder
 
-from src.call.url_bilders.local_application_url_builder import LocalApplicationUrlBuilder
+from src.call.url_builders.local_application_url_builder import LocalApplicationUrlBuilder
 
 def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None) -> FastAPI:
 
@@ -104,17 +104,16 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
             )
 
 
-            url_bilder = CirculationApplicationUrlBuilder(auth,session)
             bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
 
             # Тиражное приложение
             # await insert_auth(session, auth)
-            # url_bilder = CirculationApplicationUrlBuilder(auth,session)
+            # url_builder = CirculationApplicationUrlBuilder(auth,session)
 
             # Локальное приложение
             with open("conf.json", 'w', encoding='utf-8') as f:
                 f.write(auth.model_dump_json())
-            url_bilder = LocalApplicationUrlBuilder("conf.json")
+            url_builder = LocalApplicationUrlBuilder("conf.json")
 
             
             if event_binds:
@@ -129,7 +128,7 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
                             }
                         }
                     )             
-                await bitrix_api.call_batch(url_bilder, event_arr)
+                await bitrix_api.call_batch(url_builder, event_arr)
                 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
 
             if placement_binds:
@@ -145,7 +144,7 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
                             }
                         }
                     )
-                await bitrix_api.call_batch(url_bilder, placement_arr)
+                await bitrix_api.call_batch(url_builder, placement_arr)
                 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
 
             return """
@@ -171,10 +170,12 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
     @router.get("/index")
     async def index_get(code:str, domain:str, member_id:str, scope:str, server_domain: str, request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
 
-        url_bilder = OAuth2UrlBuilder(code)
-        await url_bilder.get_auth()
+        bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
 
-        res = await call_method(url_bilder,"crm.contact.add",
+        url_builder = OAuth2UrlBuilder(code)
+        await url_builder.get_auth()
+
+        res = await bitrix_api.call_method(url_builder,"crm.contact.add",
                                                     {
                                                         "FIELDS":{
                                                             "NAME": "Иван",
@@ -202,14 +203,14 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
 
         # Тиражное приложение
         # auth = await get_auth_by_member_id(session=session, member_id=body["member_id"])
-        # url_bilder = CirculationApplicationUrlBuilder(auth,session)
+        # url_builder = CirculationApplicationUrlBuilder(auth,session)
 
         # Локальное приложение
-        url_bilder = LocalApplicationUrlBuilder("conf.json")
+        url_builder = LocalApplicationUrlBuilder("conf.json")
 
         bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
           
-        res = await call_method(url_bilder,"crm.contact.add",
+        res = await bitrix_api.call_method(url_builder,"crm.contact.add",
                                                     {
                                                         "FIELDS":{
                                                             "NAME": "Иван",
@@ -229,8 +230,8 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
                                                         }
                                                     })
 
-        res1 = await call_batch(
-            url_bilder,
+        res1 = await bitrix_api.call_batch(
+            url_builder,
             [
                 {
                     "method": "crm.contact.add",

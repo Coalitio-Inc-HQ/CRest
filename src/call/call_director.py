@@ -1,5 +1,5 @@
 from typing import Any
-from src.call.url_bilders.url_builder import UrlBuilder
+from src.call.url_builders.url_builder import UrlBuilder
 import datetime
 from src.settings import settings
 import time
@@ -290,5 +290,3 @@ class CallDirectorBarrelStrategy(CallDirector):
         pass
 
 
-
-barrel_strategy_call_director = CallDirectorBarrelStrategy()

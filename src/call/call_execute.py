@@ -2,8 +2,8 @@ from httpx import AsyncClient, HTTPStatusError
 from typing import Any
 from src.loging.logging_utility import log, LogMessage, log_en
 
-from src.call.url_bilders.url_builder import UrlBuilder
-from src.call.url_bilders.url_builder import ExceptionRefreshAuth
+from src.call.url_builders.url_builder import UrlBuilder
+from src.call.url_builders.url_builder import ExceptionRefreshAuth
 
 
 async def call_execute(url_builder: UrlBuilder, method: str, param_str: str) -> Any:

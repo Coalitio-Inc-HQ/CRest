@@ -1,14 +1,17 @@
 from src.database.session_database import engine, session_factory
 import asyncio
 
-from src.call.calls import call_method, call_batch, get_list, get_list_bath, get_list_generator
-from call.url_bilders.web_hook_url_builder import web_hook_url_builder
+from src.call.calls import CallAPIBitrix
+from src.call.call_director import CallDirectorBarrelStrategy
+
+from src.call.url_builders.web_hook_url_builder import web_hook_url_builder
 
 from src.database.database_requests import *
 
 from sqlalchemy import text
 
 async def run():
+    bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
     # for x in range(2600):
     #   res = await call_method(web_hook_url_builder, "crm.contact.add",
     #                                   {
@@ -20,7 +23,7 @@ async def run():
     #                                 )
     #   print(res)
 
-    for i in range(1000):
+    for i in range(1):
         arr = []
         for i in range(100):
             arr.append(
@@ -47,7 +50,7 @@ async def run():
         #         }
         #     )
 
-        res1 = await call_batch(web_hook_url_builder,arr)
+        res1 = await bitrix_api.call_batch(web_hook_url_builder,arr)
         print(res1)
 
 
