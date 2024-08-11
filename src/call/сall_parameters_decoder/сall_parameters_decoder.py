@@ -35,3 +35,10 @@ async def decode_body_request(request: Request) -> dict | None:
         return call_parameters_decoder(string)
     else:
         return None
+    
+
+def get_body(request: Request) -> dict | None:
+    if request.state.body:
+        return request.state.body
+    else:
+        return None

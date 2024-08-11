@@ -1,9 +1,8 @@
-
 from src.database.session_database import engine, session_factory
 import asyncio
 
 from src.call.calls import call_method, call_batch, get_list, get_list_bath, get_list_generator
-from src.call.url_builder import web_hook_url_builder
+from call.url_bilders.web_hook_url_builder import web_hook_url_builder
 
 from src.database.database_requests import *
 

@@ -4,27 +4,28 @@ from datetime import datetime
 
 class AuthDTO(BaseModel):
     """
+    lang: str
+    app_id: str
+
     access_token: str
+    expires: int | None
     expires_in: int
+    scope: str | None
+    domain: str
+    status: str
+    member_id: str | None
+    user_id: int | None
     refresh_token: str
-    client_endpoint: str
-    member_id: str
-    application_token: str | None
-    placement_options: dict | None
     """
+    lang: str
+    app_id: str
+
     access_token: str
+    expires: int | None
     expires_in: int
+    scope: str | None
+    domain: str
+    status: str
+    member_id: str | None
+    user_id: int | None
     refresh_token: str
-    client_endpoint: str
-    member_id: str
-    application_token: str | None
-    placement_options: dict | None
-
-    # AUTH_ID: str
-    # AUTH_EXPIRES: int
-    # REFRESH_ID: str
-    # member_id: str
-    # status: str
-    # PLACEMENT: str
-    # PLACEMENT_OPTIONS: dict
-

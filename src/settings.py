@@ -38,6 +38,8 @@ class Settings(BaseSettings):
 
     APP_HANDLER_ADDRESS:str
 
+    IS_CIRCULATION_APP: bool
+
     @property
     def DATABASE_URL_ASINC(self):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"

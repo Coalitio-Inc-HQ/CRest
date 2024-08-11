@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Body, APIRouter,Request,Depends
+from fastapi import FastAPI, Body, APIRouter,Request,Depends, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,16 +10,18 @@ import json
 from .loging.logging_utility import log, LogMessage,log_en
 from .settings import settings
 
-from src.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
+from src.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request, get_body
 
 from .database.session_database import get_session, AsyncSession
 from .database.database_requests import *
 
-from .call.calls import call_method, call_batch, get_list
-from .call.url_builder import CirculationApplicationUrlBuilder
+from src.call.calls import call_method, call_batch, get_list
+from src.call.url_bilders.circulation_application_url_builder import CirculationApplicationUrlBuilder
 
 from .event_bind import EventBind
 from .placement_bind import PlacementBind
+
+from src.body_preparer import BodyPreparer
 
 def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None) -> FastAPI:
 
@@ -29,6 +31,8 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
         log(LogMessage(time=None,heder="Сервер остановлен.", heder_dict=None,body=None,level=log_en.INFO))
 
     app = FastAPI(lifespan=lifespan)
+
+    app.add_middleware(BodyPreparer)
 
     @app.exception_handler(Exception)
     async def exception_handler(request: Request, error: Exception):
@@ -69,36 +73,32 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
 
 
     @router.post("/install", response_class=HTMLResponse)
-    async def install_post (DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str,request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(decode_body_request)):
+    async def install_post (DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str,request: Request,  session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
+        
+        form = await request.form() 
+        print(form)
 
         print(body)
 
         if (body["PLACEMENT"]=="DEFAULT"):
             auth = AuthDTO(
+                lang=LANG,
+                app_id=APP_SID,
+
                 access_token = body["AUTH_ID"],
-                expires_in = body["AUTH_EXPIRES"],
-                refresh_token = body["REFRESH_ID"],
-                client_endpoint = f"https://{DOMAIN}/rest/",
+                expires=None,
+                expires_in = int(body["AUTH_EXPIRES"]),
+                scope=None,
+                domain=DOMAIN,
+                status= body ["status"],
                 member_id = body["member_id"],
-                application_token = APP_SID,
-                placement_options = json.loads(body["PLACEMENT_OPTIONS"])
+                user_id=None,
+                refresh_token = body["REFRESH_ID"],
             )
             await insert_auth(session, auth)
 
             url_bilder = CirculationApplicationUrlBuilder(auth,session)
 
-            log(LogMessage(time=None,heder="Install.", 
-                            heder_dict={
-                            },
-                            body=
-                            {
-                                "DOMAIN":DOMAIN,
-                                "PROTOCOL":PROTOCOL,
-                                "LANG":LANG,
-                                "APP_SID":APP_SID,
-                                "auth_dict":body
-                            },
-                            level=log_en.DEBUG))
             
             if event_binds:
                 event_arr = []
@@ -113,6 +113,7 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
                         }
                     )
                 await call_batch(url_bilder, event_arr)
+                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
 
             if placement_binds:
                 placement_arr = []
@@ -128,6 +129,7 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
                         }
                     )
                 await call_batch(url_bilder, placement_arr)
+                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
 
             return """
             <head>
@@ -151,20 +153,8 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
 
 
     @router.post("/index")
-    async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(decode_body_request)):
+    async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
 
-        log(LogMessage(time=None,heder="Init.", 
-                    heder_dict={
-                    },
-                    body=
-                    {
-                        "DOMAIN":DOMAIN,
-                        "PROTOCOL":PROTOCOL,
-                        "LANG":LANG,
-                        "APP_SID":APP_SID,
-                        "auth_dict":body
-                    },
-                    level=log_en.DEBUG))
 
         auth = await get_auth_by_member_id(session=session, member_id=body["member_id"])
         url_bilder = CirculationApplicationUrlBuilder(auth,session)
@@ -236,9 +226,11 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
             )
         res2 = await call_batch(url_bilder, arr, True)
 
-        res3 = await get_list(url_bilder, "crm.contact.list")
+        # res3 = await get_list(url_bilder, "crm.contact.list")
 
-        return {"res":res, "res1":res1, "res2":res2, "res3": res3}
+        return {"res":res, "res1":res1, "res2":res2, 
+                # "res3": res3
+                }
 
     app.include_router(router, tags=["webhook"])
 
