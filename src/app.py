@@ -15,13 +15,15 @@ from src.call.сall_parameters_decoder.сall_parameters_decoder import decode_bo
 from .database.session_database import get_session, AsyncSession
 from .database.database_requests import *
 
-from src.call.calls import call_method, call_batch, get_list
+from src.call.calls import CallAPIBitrix
 from src.call.url_bilders.circulation_application_url_builder import CirculationApplicationUrlBuilder
 
 from .event_bind import EventBind
 from .placement_bind import PlacementBind
 
 from src.body_preparer import BodyPreparer
+
+from src.call.call_director import CallDirectorBarrelStrategy
 
 def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None) -> FastAPI:
 
@@ -98,7 +100,7 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
             await insert_auth(session, auth)
 
             url_bilder = CirculationApplicationUrlBuilder(auth,session)
-
+            bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
             
             if event_binds:
                 event_arr = []
@@ -111,8 +113,8 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
                                 "handler": settings.APP_HANDLER_ADDRESS+event.handler
                             }
                         }
-                    )
-                await call_batch(url_bilder, event_arr)
+                    )             
+                await bitrix_api.call_batch(url_bilder, event_arr)
                 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
 
             if placement_binds:
@@ -128,7 +130,7 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
                             }
                         }
                     )
-                await call_batch(url_bilder, placement_arr)
+                await bitrix_api.call_batch(url_bilder, placement_arr)
                 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
 
             return """
@@ -153,50 +155,50 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
 
 
     @router.post("/index")
-    async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
-
+    async def index_post(DOMAIN: str, PROTOCOL: int, LANG: str, APP_SID: str, request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
 
         auth = await get_auth_by_member_id(session=session, member_id=body["member_id"])
-        url_bilder = CirculationApplicationUrlBuilder(auth,session)
+        url_builder = CirculationApplicationUrlBuilder(auth, session)
+        bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())  
 
-        res = await call_method(url_bilder,"crm.contact.add",
-                                                    {
-                                                        "FIELDS":{
-                                                            "NAME": "Иван",
-                                                            "LAST_NAME": "Петров",
-                                                            "EMAIL":[
-                                                                {
-                                                                    "VALUE": "mail@example.com",
-                                                                    "VALUE_TYPE": "WORK"
-                                                                }
-                                                            ],
-                                                            "PHONE":[
-                                                                {
-                                                                    "VALUE": "555888",
-                                                                    "VALUE_TYPE": "WORK"
-                                                                }
-                                                            ]
-                                                        }
-                                                    })
+        res = await bitrix_api.call_method(url_builder, "crm.contact.add",
+                                           {
+                                               "FIELDS": {
+                                                   "NAME": "Иван",
+                                                   "LAST_NAME": "Петров",
+                                                   "EMAIL": [
+                                                       {
+                                                           "VALUE": "mail@example.com",
+                                                           "VALUE_TYPE": "WORK"
+                                                       }
+                                                   ],
+                                                   "PHONE": [
+                                                       {
+                                                           "VALUE": "555888",
+                                                           "VALUE_TYPE": "WORK"
+                                                       }
+                                                   ]
+                                               }
+                                           })
 
-        res1 = await call_batch(
-            url_bilder,
+        res1 = await bitrix_api.call_batch(
+            url_builder,
             [
                 {
                     "method": "crm.contact.add",
-                    "params":{
-                        "FIELDS":{
-                            "NAME":"Иван1",
-                            "LAST_NAME":"Петров1"
+                    "params": {
+                        "FIELDS": {
+                            "NAME": "Иван1",
+                            "LAST_NAME": "Петров1"
                         }
                     }
                 },
                 {
                     "method": "crm.contact.add",
-                    "params":{
-                        "FIELDS":{
-                            "NAME":"Иван2",
-                            "LAST_NAME":"Петров2"
+                    "params": {
+                        "FIELDS": {
+                            "NAME": "Иван2",
+                            "LAST_NAME": "Петров2"
                         }
                     }
                 }
@@ -207,30 +209,26 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
             arr.append(
                 {
                     "method": "crm.contact.add",
-                    "params":{
-                        "FIELDS":{
-                            "NAME":f"Иван{i}",
-                            "LAST_NAME":f"Петров{i}"
+                    "params": {
+                        "FIELDS": {
+                            "NAME": f"Иван{i}",
+                            "LAST_NAME": f"Петров{i}"
                         }
                     }
                 }
             )
 
         arr.insert(10,
-                {
-                    "method": "crm.contact.add",
-                    "params":{
-                        "FIELDS":"NAME"
-                    }
-                }
-            )
-        res2 = await call_batch(url_bilder, arr, True)
+                   {
+                       "method": "crm.contact.add",
+                       "params": {
+                           "FIELDS": "NAME"
+                       }
+                   })
+        res2 = await bitrix_api.call_batch(url_builder, arr, True)
 
-        # res3 = await get_list(url_bilder, "crm.contact.list")
 
-        return {"res":res, "res1":res1, "res2":res2, 
-                # "res3": res3
-                }
+        return {"res": res, "res1": res1, "res2": res2}
 
     app.include_router(router, tags=["webhook"])
 
