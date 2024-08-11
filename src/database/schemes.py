@@ -17,8 +17,8 @@ class AuthDTO(BaseModel):
     user_id: int | None
     refresh_token: str
     """
-    lang: str
-    app_id: str
+    lang: str | None
+    app_id: str | None
 
     access_token: str
     expires: int | None
@@ -28,4 +28,4 @@ class AuthDTO(BaseModel):
     status: str
     member_id: str | None
     user_id: int | None
-    refresh_token: str
+    refresh_token: str | None
