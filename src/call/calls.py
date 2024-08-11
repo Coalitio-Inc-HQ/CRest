@@ -1,7 +1,7 @@
 from .call_parameters_encoder.сall_parameters_encoder import call_parameters_encoder,call_parameters_encoder_batсh
 from src.settings import settings
 
-from .url_builder import UrlBuilder
+from .url_bilders.url_builder import UrlBuilder
 
 from httpx import HTTPStatusError
 

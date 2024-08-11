@@ -12,31 +12,31 @@ class BodyPreparer(BaseHTTPMiddleware):
 
         # Извлечение тела запроса
         content_type = request.headers.get("content-type")
-        body = {}
+        body = None
         if content_type == "application/json":
             body = await request.json()
         elif content_type == "application/x-www-form-urlencoded":
             body = await decode_body_request(request)
         request.state.body = body
 
-        # Получение аутентификации
-        if settings.IS_CIRCULATION_APP:
-            if "code" in request.query_params:
-                # Испльзован OAuth 2.0
-                pass
-            elif "AUTH_ID" in body:
-                # Аутентификация через фрайм
-                auth = AuthFrame()
-                pass
-            elif "auth" in body:
-                # Аутентификация через форму при событии
-                pass
-            else:
-                # вытащить из БД
-                pass
-        else:
-            # хук
-            pass
+        # # Получение аутентификации
+        # if settings.IS_CIRCULATION_APP:
+        #     if "code" in request.query_params:
+        #         # Испльзован OAuth 2.0
+        #         pass
+        #     elif "AUTH_ID" in body:
+        #         # Аутентификация через фрайм
+        #         auth = AuthFrame()
+        #         pass
+        #     elif "auth" in body:
+        #         # Аутентификация через форму при событии
+        #         pass
+        #     else:
+        #         # вытащить из БД
+        #         pass
+        # else:
+        #     # хук
+        #     pass
 
         response = await call_next(request)
 

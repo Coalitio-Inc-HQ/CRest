@@ -1,5 +1,5 @@
 from typing import Any
-from src.call.url_builder import UrlBuilder
+from src.call.url_bilders.url_builder import UrlBuilder
 import datetime
 from src.settings import settings
 import time
@@ -51,14 +51,14 @@ class CallDirectorBarrelStrategy(CallDirector):
         """
         Получает информацию о доменной зоне или создаёт её.
         """
-        if url_builder.get_member_id() in self.domains_data:
-            return self.domains_data[url_builder.get_member_id()]
+        if url_builder.get_name() in self.domains_data:
+            return self.domains_data[url_builder.get_name()]
         else:
             domain_info = {
                 "number_of_requests": 0,
                 "method_operating":{}
             }
-            self.domains_data[url_builder.get_member_id()] = domain_info
+            self.domains_data[url_builder.get_name()] = domain_info
             return domain_info
 
     
