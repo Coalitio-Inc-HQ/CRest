@@ -11,12 +11,14 @@ from fastapi import FastAPI, Body, APIRouter,Request,Depends
 
 from fastapi.responses import HTMLResponse
 
-from src.call.url_bilders.frame_url_builder import FrameUrlBuilder
-from src.call.url_bilders.event_url_builder import EventUrlBuilder
+from src.call.url_builders.frame_url_builder import FrameUrlBuilder
+from src.call.url_builders.event_url_builder import EventUrlBuilder
 
 from src.database.schemes import AuthDTO
 
-from src.call.calls import call_method
+from src.call.calls import CallAPIBitrix
+
+from src.call.call_director import CallDirectorBarrelStrategy
 
 # import src.check_server # не убирать
 
@@ -39,9 +41,10 @@ async def onCrmContactAdd(body: dict | None = Depends(decode_body_request)):
                 refresh_token = None,
             )
     
-    url_bilder = EventUrlBuilder(auth)
+    url_builder = EventUrlBuilder(auth)
+    bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
 
-    res = await call_method(url_bilder,"crm.contact.add",
+    res = await bitrix_api.call_method(url_builder,"crm.contact.add",
                                             {
                                                 "FIELDS":{
                                                     "NAME": "Иван",
@@ -82,9 +85,10 @@ async def onCrmContactAdd(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, body:
                 refresh_token = body["REFRESH_ID"],
             )
     
-    url_bilder = FrameUrlBuilder(auth)
+    url_builder = FrameUrlBuilder(auth)
+    bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
 
-    res = await call_method(url_bilder,"crm.contact.add",
+    res = await bitrix_api.call_method(url_builder,"crm.contact.add",
                                             {
                                                 "FIELDS":{
                                                     "NAME": "Иван",

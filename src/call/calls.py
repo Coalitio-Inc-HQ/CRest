@@ -1,13 +1,11 @@
 from .call_parameters_encoder.сall_parameters_encoder import call_parameters_encoder,call_parameters_encoder_batсh
 from src.settings import settings
 
-from .url_builder import UrlBuilder
+from .url_builders.url_builder import UrlBuilder
 
 from httpx import HTTPStatusError
 
 from src.loging.logging_utility import log, LogMessage,log_en, filter_array_to_str, filter_dict_to_str
-
-from .call_director import barrel_strategy_call_director
 
 from typing import Any
 
@@ -107,8 +105,8 @@ def error_catcher(name: str):
     return wrapper
 
 class CallAPIBitrix:
-    def __init__(self, call_director):
-        self.call_director: CallDirector = call_director
+    def __init__(self, call_director: CallDirector):
+        self.call_director = call_director
         
 
     @error_catcher("call_method")

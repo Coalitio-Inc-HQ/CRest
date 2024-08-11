@@ -11,7 +11,7 @@ class WebHookUrlBuilder(UrlBuilder):
     
     
     def get_name(self) -> str:
-        return self.settings.C_REST_WEB_HOOK_URL
+        return settings.C_REST_WEB_HOOK_URL
 
 
-# web_hook_url_builder = WebHookUrlBuilder()
+web_hook_url_builder = WebHookUrlBuilder()
