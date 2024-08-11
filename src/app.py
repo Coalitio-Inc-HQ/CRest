@@ -23,7 +23,12 @@ from .placement_bind import PlacementBind
 
 from src.body_preparer import BodyPreparer
 
+
 from src.call.call_director import CallDirectorBarrelStrategy
+
+from src.call.url_bilders.oauth2_url_builder import OAuth2UrlBuilder
+
+from src.call.url_bilders.local_application_url_builder import LocalApplicationUrlBuilder
 
 def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None) -> FastAPI:
 
@@ -97,10 +102,20 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
                 user_id=None,
                 refresh_token = body["REFRESH_ID"],
             )
-            await insert_auth(session, auth)
+
 
             url_bilder = CirculationApplicationUrlBuilder(auth,session)
             bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
+
+            # Тиражное приложение
+            # await insert_auth(session, auth)
+            # url_bilder = CirculationApplicationUrlBuilder(auth,session)
+
+            # Локальное приложение
+            with open("conf.json", 'w', encoding='utf-8') as f:
+                f.write(auth.model_dump_json())
+            url_bilder = LocalApplicationUrlBuilder("conf.json")
+
             
             if event_binds:
                 event_arr = []
@@ -153,36 +168,69 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
             </body>
             """
 
+    @router.get("/index")
+    async def index_get(code:str, domain:str, member_id:str, scope:str, server_domain: str, request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
+
+        url_bilder = OAuth2UrlBuilder(code)
+        await url_bilder.get_auth()
+
+        res = await call_method(url_bilder,"crm.contact.add",
+                                                    {
+                                                        "FIELDS":{
+                                                            "NAME": "Иван",
+                                                            "LAST_NAME": "Петров",
+                                                            "EMAIL":[
+                                                                {
+                                                                    "VALUE": "mail@example.com",
+                                                                    "VALUE_TYPE": "WORK"
+                                                                }
+                                                            ],
+                                                            "PHONE":[
+                                                                {
+                                                                    "VALUE": "555888",
+                                                                    "VALUE_TYPE": "WORK"
+                                                                }
+                                                            ]
+                                                        }
+                                                    })
+
+
+        return {"res":res}
 
     @router.post("/index")
-    async def index_post(DOMAIN: str, PROTOCOL: int, LANG: str, APP_SID: str, request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
+    async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
 
-        auth = await get_auth_by_member_id(session=session, member_id=body["member_id"])
-        url_builder = CirculationApplicationUrlBuilder(auth, session)
-        bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())  
+        # Тиражное приложение
+        # auth = await get_auth_by_member_id(session=session, member_id=body["member_id"])
+        # url_bilder = CirculationApplicationUrlBuilder(auth,session)
 
-        res = await bitrix_api.call_method(url_builder, "crm.contact.add",
-                                           {
-                                               "FIELDS": {
-                                                   "NAME": "Иван",
-                                                   "LAST_NAME": "Петров",
-                                                   "EMAIL": [
-                                                       {
-                                                           "VALUE": "mail@example.com",
-                                                           "VALUE_TYPE": "WORK"
-                                                       }
-                                                   ],
-                                                   "PHONE": [
-                                                       {
-                                                           "VALUE": "555888",
-                                                           "VALUE_TYPE": "WORK"
-                                                       }
-                                                   ]
-                                               }
-                                           })
+        # Локальное приложение
+        url_bilder = LocalApplicationUrlBuilder("conf.json")
 
-        res1 = await bitrix_api.call_batch(
-            url_builder,
+        bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
+          
+        res = await call_method(url_bilder,"crm.contact.add",
+                                                    {
+                                                        "FIELDS":{
+                                                            "NAME": "Иван",
+                                                            "LAST_NAME": "Петров",
+                                                            "EMAIL":[
+                                                                {
+                                                                    "VALUE": "mail@example.com",
+                                                                    "VALUE_TYPE": "WORK"
+                                                                }
+                                                            ],
+                                                            "PHONE":[
+                                                                {
+                                                                    "VALUE": "555888",
+                                                                    "VALUE_TYPE": "WORK"
+                                                                }
+                                                            ]
+                                                        }
+                                                    })
+
+        res1 = await call_batch(
+            url_bilder,
             [
                 {
                     "method": "crm.contact.add",
