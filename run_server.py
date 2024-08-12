@@ -127,6 +127,7 @@ async def onCrmContactAdd(params: dict | None = Depends(decode_body_request)):
 
 app = BitrixAPI(
     BitrixAPIMode.CirculationApplication,
+    CallAPIBitrix(CallDirectorBarrelStrategy()),
     routers=[router],
     event_binds=[EventBind("onCrmContactAdd", "/onCrmContactAdd"),
                  EventBind("onAppInstall", "/onAppInstall")
