@@ -96,11 +96,11 @@ class BitrixAPI:
 
         self.app = FastAPI()
 
-        self.get = self.app.get
-        self.head = self.app.head
-        self.put = self.app.put
-        self.delete = self.app.delete
-        self.post = self.app.post
+        self.get = self.get
+        self.head = self.head
+        self.put = self.put
+        self.delete = self.delete
+        self.post = self.post
 
         
         # Убрать в последствии
@@ -175,6 +175,19 @@ class BitrixAPI:
         router = APIRouter()
         self.build_app(router)
         self.app.include_router(router, tags=["webhook"])
+
+    def add_event_bind(self, event: str):
+        """Декоратор для добавления событийного бинда и создания маршрута"""
+        def decorator(func):
+            self.event_binds.append(EventBind(event=event, handler=f"/{event}"))
+
+            @self.app.post(f"/{event}")
+            @wraps(func)
+            async def wrapper(*args, **kwargs):
+                return await func(*args, **kwargs)
+
+            return wrapper
+        return decorator
 
 
 
@@ -320,3 +333,5 @@ def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, pla
 
 
         return {"res": res, "res1": res1, "res2": res2}
+
+
