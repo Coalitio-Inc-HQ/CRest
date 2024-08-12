@@ -2,8 +2,10 @@ from src.database.schemes import AuthDTO
 from src.settings import settings
 from src.database.database_requests import *
 from .url_builder import UrlBuilder
-from fastapi import Depends
+from fastapi import Depends, Request
 from src.call.сall_parameters_decoder.сall_parameters_decoder import get_body
+
+from src.database.database_requests import insert_auth
 
 class CirculationApplicationUrlBuilder(UrlBuilder):
     def __init__(self, auth: AuthDTO, session: AsyncSession):
@@ -69,3 +71,30 @@ def get_circulation_application_url_builder_depends(get_session):
         auth = await get_auth_by_member_id(session=session, member_id=member_id)
         return CirculationApplicationUrlBuilder(auth, session)
     return get_url_builder
+
+
+def get_circulation_application_url_builder_init_depends(get_session):
+    async def get_init_url_builder(request: Request , body: dict | None = Depends(get_body), session: AsyncSession = Depends(get_session)) -> UrlBuilder:
+        
+        params = request.query_params._dict
+
+        auth = AuthDTO(
+                lang=params["LANG"],
+                app_id=params["APP_SID"],
+
+                access_token = body["AUTH_ID"],
+                expires=None,
+                expires_in = int(body["AUTH_EXPIRES"]),
+                scope=None,
+                domain=params["DOMAIN"],
+                status= body ["status"],
+                member_id = body["member_id"],
+                user_id=None,
+                refresh_token = body["REFRESH_ID"],
+            )
+
+        await insert_auth(session, auth)
+        return CirculationApplicationUrlBuilder(auth,session)
+            
+    
+    return get_init_url_builder

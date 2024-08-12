@@ -3,6 +3,11 @@ from src.settings import settings
 from src.database.database_requests import *
 from .url_builder import UrlBuilder
 
+from fastapi import Depends, Request
+
+from src.call.сall_parameters_decoder.сall_parameters_decoder import get_body
+
+
 class LocalApplicationUrlBuilder(UrlBuilder):
     def __init__(self, filename: str):
         super().__init__(True, True)
@@ -55,3 +60,30 @@ def get_local_application_url_builder_depends(filename: str):
     def get_url_builder() -> UrlBuilder:
         return LocalApplicationUrlBuilder(filename)
     return get_url_builder
+
+
+async def get_local_application_url_builder_init_depends(filename: str):
+    def get_init_url_builder(request: Request , body: dict | None = Depends(get_body)) -> UrlBuilder:
+        
+        params = request.query_params._dict
+
+        auth = AuthDTO(
+                lang=params["LANG"],
+                app_id=params["APP_SID"],
+
+                access_token = body["AUTH_ID"],
+                expires=None,
+                expires_in = int(body["AUTH_EXPIRES"]),
+                scope=None,
+                domain=params["DOMAIN"],
+                status= body ["status"],
+                member_id = body["member_id"],
+                user_id=None,
+                refresh_token = body["REFRESH_ID"],
+            )
+
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(auth.model_dump_json())
+        return LocalApplicationUrlBuilder(filename)
+    
+    return get_init_url_builder
