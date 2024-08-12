@@ -28,57 +28,84 @@ from src.call.call_director import CallDirectorBarrelStrategy
 
 from src.call.url_builders.oauth2_url_builder import OAuth2UrlBuilder
 
-from src.call.url_builders.local_application_url_builder import LocalApplicationUrlBuilder
 
-def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None) -> FastAPI:
+from src.call.url_builders.url_builder import UrlBuilder
+from src.call.url_builders.web_hook_url_builder import WebHookUrlBuilder, get_web_hook_url_builder_depends
+from src.call.url_builders.local_application_url_builder import LocalApplicationUrlBuilder, get_local_application_url_builder_depends
+from src.call.url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder, get_circulation_application_url_builder_depends
 
-    async def lifespan(app: FastAPI):
-        log(LogMessage(time=None,heder="Сервер запущен.", heder_dict=None,body=None,level=log_en.INFO))
-        yield
-        log(LogMessage(time=None,heder="Сервер остановлен.", heder_dict=None,body=None,level=log_en.INFO))
+import enum
 
-    app = FastAPI(lifespan=lifespan)
+class BitrixAPIMode(enum.Enum):
+    WebHook = WebHookUrlBuilder
+    LocalApplication = LocalApplicationUrlBuilder
+    CirculationApplication = CirculationApplicationUrlBuilder
 
-    app.add_middleware(BodyPreparer)
+class BitrixAPI:
+    def __init__(self,mode :BitrixAPIMode, lifespan = None, routers: list[APIRouter] | None = None , event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None) -> None:
+        self.event_binds = []
+        self.placement_binds = []
 
-    @app.exception_handler(Exception)
-    async def exception_handler(request: Request, error: Exception):
-        log(LogMessage(time=None,heder="Неизвестная ошибка.", 
-                    heder_dict=error.args,body=
-                    {"url":str(request.url),"query_params":request.query_params._list,
-                        "path_params":request.path_params,
-                        },
-                        level=log_en.ERROR))
+        def lifespan_decorator(app: FastAPI):
+            log(LogMessage(time=None,heder="Сервер запущен.", heder_dict=None,body=None,level=log_en.INFO))
+            if lifespan:
+                gen = lifespan(app)
+                for res in gen:
+                    yield res
+            else:
+                yield
+            log(LogMessage(time=None,heder="Сервер остановлен.", heder_dict=None,body=None,level=log_en.INFO))
+
+        self.app = FastAPI()
+
+        # Убрать в последствии
+        for rout in routers:
+            self.app.include_router(rout)
+
+        self.app.add_middleware(BodyPreparer)
+
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.BACKEND_CORS_ORIGINS,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
+        @self.app.exception_handler(Exception)
+        async def exception_handler(request: Request, error: Exception):
+            log(LogMessage(time=None,heder="Неизвестная ошибка.", 
+                        heder_dict=error.args,body=
+                        {"url":str(request.url),"query_params":request.query_params._list,
+                            "path_params":request.path_params,
+                            },
+                            level=log_en.ERROR))
+            
+        match mode:
+            case BitrixAPIMode.WebHook:
+                self.url_bulder_depends = get_web_hook_url_builder_depends()
+            case BitrixAPIMode.LocalApplication:
+                self.url_bulder_depends = get_local_application_url_builder_depends("conf.json")
+            case BitrixAPIMode.CirculationApplication:
+                self.url_bulder_depends = get_circulation_application_url_builder_depends(get_session)
         
-
-    print("BACKEND_CORS_ORIGINS:", settings.BACKEND_CORS_ORIGINS)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.BACKEND_CORS_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+        # Убрать в последствии
+        router = APIRouter()
+        build_app(router, event_binds, placement_binds,self.url_bulder_depends)
+        self.app.include_router(router, tags=["webhook"])
 
 
-    if routers:
-        for item in routers:
-            app.include_router(item)
 
-
-    router = APIRouter()
-
-
+def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None,  base_auth =None):
+    
     @router.head("/install")
     async def init_head():
         pass
 
-
     @router.head("/index")
     async def index_head():
         pass
-
-
+    
     @router.post("/install", response_class=HTMLResponse)
     async def install_post (DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str,request: Request,  session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
         
@@ -107,13 +134,13 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
             bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
 
             # Тиражное приложение
-            # await insert_auth(session, auth)
-            # url_builder = CirculationApplicationUrlBuilder(auth,session)
+            await insert_auth(session, auth)
+            url_builder = CirculationApplicationUrlBuilder(auth,session)
 
             # Локальное приложение
-            with open("conf.json", 'w', encoding='utf-8') as f:
-                f.write(auth.model_dump_json())
-            url_builder = LocalApplicationUrlBuilder("conf.json")
+            # with open("conf.json", 'w', encoding='utf-8') as f:
+            #     f.write(auth.model_dump_json())
+            # url_builder = LocalApplicationUrlBuilder("conf.json")
 
             
             if event_binds:
@@ -168,7 +195,7 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
             """
 
     @router.get("/index")
-    async def index_get(code:str, domain:str, member_id:str, scope:str, server_domain: str, request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
+    async def index_get(code:str, domain:str, member_id:str, scope:str, server_domain: str, request: Request , session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
 
         bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
 
@@ -199,17 +226,10 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
         return {"res":res}
 
     @router.post("/index")
-    async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
-
-        # Тиражное приложение
-        # auth = await get_auth_by_member_id(session=session, member_id=body["member_id"])
-        # url_builder = CirculationApplicationUrlBuilder(auth,session)
-
-        # Локальное приложение
-        url_builder = LocalApplicationUrlBuilder("conf.json")
+    async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: Request,url_builder: UrlBuilder = Depends(base_auth),):
 
         bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
-          
+
         res = await bitrix_api.call_method(url_builder,"crm.contact.add",
                                                     {
                                                         "FIELDS":{
@@ -278,7 +298,3 @@ def build_app(routers: list[APIRouter] | None = None , event_binds: list[EventBi
 
 
         return {"res": res, "res1": res1, "res2": res2}
-
-    app.include_router(router, tags=["webhook"])
-
-    return app

@@ -30,7 +30,7 @@ class LocalApplicationUrlBuilder(UrlBuilder):
         self.auth.expires = int(new_auth["expires"])
         self.auth.expires_in = int(new_auth["expires_in"])
         self.auth.scope = new_auth["scope"]
-        self.auth.domain = new_auth["domain"]
+        self.auth.domain = new_auth["client_endpoint"][8:-6]
         self.auth.status = new_auth["status"]
         self.auth.member_id = new_auth["member_id"]
         self.auth.user_id = int(new_auth["user_id"])
@@ -49,3 +49,9 @@ class LocalApplicationUrlBuilder(UrlBuilder):
 
     def get_name(self) -> str:
         return self.auth.member_id
+
+
+def get_local_application_url_builder_depends(filename: str):
+    def get_url_builder() -> UrlBuilder:
+        return LocalApplicationUrlBuilder(filename)
+    return get_url_builder

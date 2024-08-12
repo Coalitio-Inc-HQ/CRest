@@ -1,5 +1,5 @@
 import uvicorn
-from src.app import build_app
+from src.app import BitrixAPI, BitrixAPIMode
 from src.settings import settings
 from src.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
 
@@ -11,6 +11,7 @@ from fastapi import FastAPI, Body, APIRouter,Request,Depends
 
 from fastapi.responses import HTMLResponse
 
+# from src.call.url_builders.web_hook_url_builder import get_web_hook_url_builder
 from src.call.url_builders.frame_url_builder import FrameUrlBuilder
 from src.call.url_builders.event_url_builder import EventUrlBuilder
 
@@ -124,7 +125,8 @@ async def onCrmContactAdd(params: dict | None = Depends(decode_body_request)):
     return params
 
 
-app = build_app(
+app = BitrixAPI(
+    BitrixAPIMode.CirculationApplication,
     routers=[router],
     event_binds=[EventBind("onCrmContactAdd", "/onCrmContactAdd"),
                  EventBind("onAppInstall", "/onAppInstall")
@@ -133,7 +135,7 @@ app = build_app(
                       PlacementBind("settings", "LANDING_SETTINGS", "/settings"),
                       PlacementBind("CRM_LEAD_DETAIL_ACTIVITY", "CRM_LEAD_DETAIL_ACTIVITY", "/CRM_LEAD_DETAIL_ACTIVITY")
                       ]
-    )
+    ).app
 
 uvicorn.run(app, host=settings.APP_HOST, port=settings.APP_PORT)
 

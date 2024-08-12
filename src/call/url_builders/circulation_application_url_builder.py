@@ -2,7 +2,8 @@ from src.database.schemes import AuthDTO
 from src.settings import settings
 from src.database.database_requests import *
 from .url_builder import UrlBuilder
-
+from fastapi import Depends
+from src.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
 class CirculationApplicationUrlBuilder(UrlBuilder):
     def __init__(self, auth: AuthDTO, session: AsyncSession):
@@ -30,7 +31,7 @@ class CirculationApplicationUrlBuilder(UrlBuilder):
                         int (new_auth["expires"]),
                         int(new_auth["expires_in"]),
                         new_auth["scope"],
-                        new_auth["domain"],
+                        new_auth["client_endpoint"][8:-6],
                         new_auth["status"],
                         new_auth["member_id"],
                         int(new_auth["user_id"]),
@@ -41,7 +42,7 @@ class CirculationApplicationUrlBuilder(UrlBuilder):
         self.auth.expires = int(new_auth["expires"])
         self.auth.expires_in = int(new_auth["expires_in"])
         self.auth.scope = new_auth["scope"]
-        self.auth.domain = new_auth["domain"]
+        self.auth.domain = new_auth["client_endpoint"][8:-6]
         self.auth.status = new_auth["status"]
         self.auth.member_id = new_auth["member_id"]
         self.auth.user_id = int(new_auth["user_id"])
@@ -55,3 +56,16 @@ class CirculationApplicationUrlBuilder(UrlBuilder):
 
     def get_name(self) -> str:
         return self.auth.member_id
+
+def get_circulation_application_url_builder_depends(get_session):
+    async def get_url_builder(session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)) -> UrlBuilder:
+        member_id = None
+        if "member_id" in body:
+            member_id=body["member_id"]
+        elif "auth" in body:
+            if "member_id" in body["auth"]:
+                member_id = body["auth"]["member_id"]
+
+        auth = await get_auth_by_member_id(session=session, member_id=member_id)
+        return CirculationApplicationUrlBuilder(auth, session)
+    return get_url_builder
