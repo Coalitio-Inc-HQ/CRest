@@ -15,7 +15,7 @@ class EventUrlBuilder(UrlBuilder):
 
 
     async def update_domain(self, domain: str) -> None:
-        self.auth.client_endpoint = domain
+        self.auth.domain = domain
 
     def get_name(self) -> str:
         return self.auth.member_id
