@@ -39,8 +39,8 @@ class BitrixAPIMode(enum.Enum):
 
 class BitrixAPI:
     def __init__(self,mode :BitrixAPIMode, call_api_bitrix: CallAPIBitrix, lifespan = None, routers: list[APIRouter] | None = None , event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None) -> None:
-        self.event_binds = []
-        self.placement_binds = []
+        self.event_binds = event_binds
+        self.placement_binds = placement_binds
         self.call_api_bitrix = call_api_bitrix
 
         def lifespan_decorator(app: FastAPI):
