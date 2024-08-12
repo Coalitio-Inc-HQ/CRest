@@ -38,9 +38,10 @@ class BitrixAPIMode(enum.Enum):
     CirculationApplication = CirculationApplicationUrlBuilder
 
 class BitrixAPI:
-    def __init__(self,mode :BitrixAPIMode, lifespan = None, routers: list[APIRouter] | None = None , event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None) -> None:
+    def __init__(self,mode :BitrixAPIMode, call_api_bitrix: CallAPIBitrix, lifespan = None, routers: list[APIRouter] | None = None , event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None) -> None:
         self.event_binds = []
         self.placement_binds = []
+        self.call_api_bitrix = call_api_bitrix
 
         def lifespan_decorator(app: FastAPI):
             log(LogMessage(time=None,heder="Сервер запущен.", heder_dict=None,body=None,level=log_en.INFO))
@@ -88,6 +89,40 @@ class BitrixAPI:
                 self.url_bulder_depends = get_circulation_application_url_builder_depends(get_session)
                 self.url_bulder_init_depends = get_circulation_application_url_builder_init_depends(get_session)
         
+        async def url_bulder_init_depends_(url_builder: UrlBuilder = Depends(self.url_bulder_init_depends)) -> None:
+            if self.event_binds:
+                event_arr = []
+                for event in self.event_binds:
+                    event_arr.append(
+                        {
+                            "method": "event.bind",
+                            "params":{
+                                "event": event.event,
+                                "handler": settings.APP_HANDLER_ADDRESS+event.handler
+                            }
+                        }
+                    )             
+                await self.call_api_bitrix.call_batch(url_builder, event_arr)
+                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
+
+            if self.placement_binds:
+                placement_arr = []
+                for placement in self.placement_binds:
+                    placement_arr.append(
+                        {
+                            "method": "placement.bind",
+                            "params":{
+                                "PLACEMENT": placement.placement,
+                                "HANDLER": settings.APP_HANDLER_ADDRESS+placement.handler,
+                                "TITLE": placement.title
+                            }
+                        }
+                    )
+                await self.call_api_bitrix.call_batch(url_builder, placement_arr)
+                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
+            return url_builder
+        self.url_bulder_init_depends = url_bulder_init_depends_
+
         # Убрать в последствии
         router = APIRouter()
         build_app(router, event_binds, placement_binds,self.url_bulder_depends, self.url_bulder_init_depends)
@@ -106,53 +141,13 @@ def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, pla
         pass
     
     @router.post("/install", response_class=HTMLResponse)
-    async def install_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, url_builder: UrlBuilder = Depends(url_bulder_init_depends), body: dict | None = Depends(get_body)):
+    async def install_post(url_builder: UrlBuilder = Depends(url_bulder_init_depends), body: dict | None = Depends(get_body)):
         
         if (body["PLACEMENT"]=="DEFAULT"):
 
             bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
-
-            # Тиражное приложение
-            # await insert_auth(session, auth)
-            # url_builder = CirculationApplicationUrlBuilder(auth,session)
-
-            # Локальное приложение
-            # with open("conf.json", 'w', encoding='utf-8') as f:
-            #     f.write(auth.model_dump_json())
-            # url_builder = LocalApplicationUrlBuilder("conf.json")
-
             
-            if event_binds:
-                event_arr = []
-                for event in event_binds:
-                    event_arr.append(
-                        {
-                            "method": "event.bind",
-                            "params":{
-                                "event": event.event,
-                                "handler": settings.APP_HANDLER_ADDRESS+event.handler
-                            }
-                        }
-                    )             
-                await bitrix_api.call_batch(url_builder, event_arr)
-                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
-
-            if placement_binds:
-                placement_arr = []
-                for placement in placement_binds:
-                    placement_arr.append(
-                        {
-                            "method": "placement.bind",
-                            "params":{
-                                "PLACEMENT": placement.placement,
-                                "HANDLER": settings.APP_HANDLER_ADDRESS+placement.handler,
-                                "TITLE": placement.title
-                            }
-                        }
-                    )
-                await bitrix_api.call_batch(url_builder, placement_arr)
-                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
-
+            
             return """
             <head>
                 <script src="//api.bitrix24.com/api/v1/"></script>
@@ -205,7 +200,7 @@ def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, pla
         return {"res":res}
 
     @router.post("/index")
-    async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: Request,url_builder: UrlBuilder = Depends(base_auth),):
+    async def index_post(url_builder: UrlBuilder = Depends(base_auth),):
 
         bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
 
