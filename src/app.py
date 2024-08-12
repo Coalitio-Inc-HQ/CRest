@@ -5,8 +5,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi.datastructures import Default
 
-import json
-
 from .loging.logging_utility import log, LogMessage,log_en
 from .settings import settings
 
@@ -23,16 +21,14 @@ from .placement_bind import PlacementBind
 
 from src.body_preparer import BodyPreparer
 
-
 from src.call.call_director import CallDirectorBarrelStrategy
 
 from src.call.url_builders.oauth2_url_builder import OAuth2UrlBuilder
 
-
 from src.call.url_builders.url_builder import UrlBuilder
-from src.call.url_builders.web_hook_url_builder import WebHookUrlBuilder, get_web_hook_url_builder_depends
-from src.call.url_builders.local_application_url_builder import LocalApplicationUrlBuilder, get_local_application_url_builder_depends
-from src.call.url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder, get_circulation_application_url_builder_depends
+from src.call.url_builders.web_hook_url_builder import WebHookUrlBuilder, get_web_hook_url_builder_depends, get_web_hook_url_builder_init_depends
+from src.call.url_builders.local_application_url_builder import LocalApplicationUrlBuilder, get_local_application_url_builder_depends, get_local_application_url_builder_init_depends
+from src.call.url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder, get_circulation_application_url_builder_depends, get_circulation_application_url_builder_init_depends
 
 import enum
 
@@ -84,19 +80,22 @@ class BitrixAPI:
         match mode:
             case BitrixAPIMode.WebHook:
                 self.url_bulder_depends = get_web_hook_url_builder_depends()
+                self.url_bulder_init_depends = get_web_hook_url_builder_init_depends()
             case BitrixAPIMode.LocalApplication:
                 self.url_bulder_depends = get_local_application_url_builder_depends("conf.json")
+                self.url_bulder_init_depends = get_local_application_url_builder_init_depends("conf.json")
             case BitrixAPIMode.CirculationApplication:
                 self.url_bulder_depends = get_circulation_application_url_builder_depends(get_session)
+                self.url_bulder_init_depends = get_circulation_application_url_builder_init_depends(get_session)
         
         # Убрать в последствии
         router = APIRouter()
-        build_app(router, event_binds, placement_binds,self.url_bulder_depends)
+        build_app(router, event_binds, placement_binds,self.url_bulder_depends, self.url_bulder_init_depends)
         self.app.include_router(router, tags=["webhook"])
 
 
 
-def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None,  base_auth =None):
+def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None,  base_auth =None, url_bulder_init_depends=None):
     
     @router.head("/install")
     async def init_head():
@@ -107,35 +106,15 @@ def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, pla
         pass
     
     @router.post("/install", response_class=HTMLResponse)
-    async def install_post (DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str,request: Request,  session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
+    async def install_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, url_builder: UrlBuilder = Depends(url_bulder_init_depends), body: dict | None = Depends(get_body)):
         
-        form = await request.form() 
-        print(form)
-
-        print(body)
-
         if (body["PLACEMENT"]=="DEFAULT"):
-            auth = AuthDTO(
-                lang=LANG,
-                app_id=APP_SID,
-
-                access_token = body["AUTH_ID"],
-                expires=None,
-                expires_in = int(body["AUTH_EXPIRES"]),
-                scope=None,
-                domain=DOMAIN,
-                status= body ["status"],
-                member_id = body["member_id"],
-                user_id=None,
-                refresh_token = body["REFRESH_ID"],
-            )
-
 
             bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
 
             # Тиражное приложение
-            await insert_auth(session, auth)
-            url_builder = CirculationApplicationUrlBuilder(auth,session)
+            # await insert_auth(session, auth)
+            # url_builder = CirculationApplicationUrlBuilder(auth,session)
 
             # Локальное приложение
             # with open("conf.json", 'w', encoding='utf-8') as f:
