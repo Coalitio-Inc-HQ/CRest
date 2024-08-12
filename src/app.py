@@ -93,6 +93,37 @@ class BitrixAPI:
         build_app(router, event_binds, placement_binds,self.url_bulder_depends, self.url_bulder_init_depends)
         self.app.include_router(router, tags=["webhook"])
 
+async def handle_event_and_placement_binds(bitrix_api: CallAPIBitrix, url_builder: UrlBuilder, event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None):
+    if event_binds:
+        event_arr = []
+        for event in event_binds:
+            event_arr.append(
+                {
+                    "method": "event.bind",
+                    "params": {
+                        "event": event.event,
+                        "handler": settings.APP_HANDLER_ADDRESS + event.handler
+                    }
+                }
+            )
+        print(event_arr)
+        await bitrix_api.call_batch(url_builder, event_arr)
+
+    if placement_binds:
+        placement_arr = []
+        for placement in placement_binds:
+            placement_arr.append(
+                {
+                    "method": "placement.bind",
+                    "params": {
+                        "PLACEMENT": placement.placement,
+                        "HANDLER": settings.APP_HANDLER_ADDRESS + placement.handler,
+                        "TITLE": placement.title
+                    }
+                }
+            )
+        print(placement_arr)
+        await bitrix_api.call_batch(url_builder, placement_arr)
 
 
 def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None,  base_auth =None, url_bulder_init_depends=None):
@@ -120,39 +151,9 @@ def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, pla
             # with open("conf.json", 'w', encoding='utf-8') as f:
             #     f.write(auth.model_dump_json())
             # url_builder = LocalApplicationUrlBuilder("conf.json")
-
+          
+            await handle_event_and_placement_binds(bitrix_api, url_builder, event_binds, placement_binds)
             
-            if event_binds:
-                event_arr = []
-                for event in event_binds:
-                    event_arr.append(
-                        {
-                            "method": "event.bind",
-                            "params":{
-                                "event": event.event,
-                                "handler": settings.APP_HANDLER_ADDRESS+event.handler
-                            }
-                        }
-                    )             
-                await bitrix_api.call_batch(url_builder, event_arr)
-                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
-
-            if placement_binds:
-                placement_arr = []
-                for placement in placement_binds:
-                    placement_arr.append(
-                        {
-                            "method": "placement.bind",
-                            "params":{
-                                "PLACEMENT": placement.placement,
-                                "HANDLER": settings.APP_HANDLER_ADDRESS+placement.handler,
-                                "TITLE": placement.title
-                            }
-                        }
-                    )
-                await bitrix_api.call_batch(url_builder, placement_arr)
-                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
-
             return """
             <head>
                 <script src="//api.bitrix24.com/api/v1/"></script>
@@ -202,7 +203,7 @@ def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, pla
                                                     })
 
 
-        return {"res":res}
+        return {"res": res}
 
     @router.post("/index")
     async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: Request,url_builder: UrlBuilder = Depends(base_auth),):
