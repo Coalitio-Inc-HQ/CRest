@@ -32,6 +32,59 @@ from src.call.url_builders.circulation_application_url_builder import Circulatio
 
 import enum
 
+from enum import Enum
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Coroutine,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+)
+
+from fastapi import routing
+from fastapi.datastructures import Default, DefaultPlaceholder
+from fastapi.exception_handlers import (
+    http_exception_handler,
+    request_validation_exception_handler,
+    websocket_request_validation_exception_handler,
+)
+from fastapi.exceptions import RequestValidationError, WebSocketRequestValidationError
+from fastapi.logger import logger
+from fastapi.openapi.docs import (
+    get_redoc_html,
+    get_swagger_ui_html,
+    get_swagger_ui_oauth2_redirect_html,
+)
+from fastapi.openapi.utils import get_openapi
+from fastapi.params import Depends
+from fastapi.types import DecoratedCallable, IncEx
+from fastapi.utils import generate_unique_id
+from starlette.applications import Starlette
+from starlette.datastructures import State
+from starlette.exceptions import HTTPException
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, JSONResponse, Response
+from starlette.routing import BaseRoute
+from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send
+from typing_extensions import Annotated, Doc, deprecated
+from fastapi.routing import APIRoute
+
+AppType = TypeVar("AppType", bound="FastAPI")
+
+
+
+
+
+
+
 class BitrixAPIMode(enum.Enum):
     WebHook = WebHookUrlBuilder
     LocalApplication = LocalApplicationUrlBuilder
@@ -96,11 +149,11 @@ class BitrixAPI:
 
         self.app = FastAPI()
 
-        self.get = self.get
-        self.head = self.head
-        self.put = self.put
-        self.delete = self.delete
-        self.post = self.post
+        self.get = self.app.get
+        self.head = self.app.head
+        self.put = self.app.put
+        self.delete = self.app.delete
+        self.post = self.app.post
 
         
         # Убрать в последствии
@@ -173,25 +226,131 @@ class BitrixAPI:
 
         # Убрать в последствии
         router = APIRouter()
-        self.build_app(router)
+        build_app(router)
         self.app.include_router(router, tags=["webhook"])
 
-    def add_event_bind(self, event: str):
-        """Декоратор для добавления событийного бинда и создания маршрута"""
-        def decorator(func):
-            self.event_binds.append(EventBind(event=event, handler=f"/{event}"))
+    def add_event_bind(
+        self,
+        event: str,
+        *,
+        path: str| None = None,
+        response_model: Any = None,
+        status_code: Optional[int] = None,
+        tags: Optional[List[Union[str, enum.Enum]]] = None,
+        dependencies: Optional[Sequence[Depends]] = None,
+        summary: Optional[str] = None,
+        description: Optional[str] = None,
+        response_description: str = "Successful Response",
+        responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+        deprecated: Optional[bool] = None,
+        operation_id: Optional[str] = None,
+        response_model_include: Optional[IncEx] = None,
+        response_model_exclude: Optional[IncEx] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        include_in_schema: bool = True,
+        response_class: Type[Response] = JSONResponse,
+        name: Optional[str] = None,
+        callbacks: Optional[List[APIRoute]] = None,
+        openapi_extra: Optional[Dict[str, Any]] = None,
+        generate_unique_id_function: Callable[[APIRoute], str] = generate_unique_id,
+    ) -> Callable[[Callable], Callable]:
+        
+        if not path:
+            path = "/" + event 
+        self.event_binds.append(EventBind(event=event, handler=path))
 
-            @self.app.post(f"/{event}")
-            @wraps(func)
-            async def wrapper(*args, **kwargs):
-                return await func(*args, **kwargs)
+        return self.app.router.post(
+            path,
+            response_model=response_model,
+            status_code=status_code,
+            tags=tags,
+            dependencies=dependencies,
+            summary=summary,
+            description=description,
+            response_description=response_description,
+            responses=responses,
+            deprecated=deprecated,
+            operation_id=operation_id,
+            response_model_include=response_model_include,
+            response_model_exclude=response_model_exclude,
+            response_model_by_alias=response_model_by_alias,
+            response_model_exclude_unset=response_model_exclude_unset,
+            response_model_exclude_defaults=response_model_exclude_defaults,
+            response_model_exclude_none=response_model_exclude_none,
+            include_in_schema=include_in_schema,
+            response_class=response_class,
+            name=name,
+            callbacks=callbacks,
+            openapi_extra=openapi_extra,
+            generate_unique_id_function=generate_unique_id_function,
+        )
+    
+    
+    def add_placement_bind(
+        self,
+        placement: str,
+        title: str,
+        *,
+        path: str| None = None,
+        response_model: Any = None,
+        status_code: Optional[int] = None,
+        tags: Optional[List[Union[str, enum.Enum]]] = None,
+        dependencies: Optional[Sequence[Depends]] = None,
+        summary: Optional[str] = None,
+        description: Optional[str] = None,
+        response_description: str = "Successful Response",
+        responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+        deprecated: Optional[bool] = None,
+        operation_id: Optional[str] = None,
+        response_model_include: Optional[IncEx] = None,
+        response_model_exclude: Optional[IncEx] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        include_in_schema: bool = True,
+        response_class: Type[Response] = JSONResponse,
+        name: Optional[str] = None,
+        callbacks: Optional[List[APIRoute]] = None,
+        openapi_extra: Optional[Dict[str, Any]] = None,
+        generate_unique_id_function: Callable[[APIRoute], str] = generate_unique_id,
+    ) -> Callable[[Callable], Callable]:
 
-            return wrapper
-        return decorator
+        if not path:
+            path = "/" + placement 
+        self.placement_binds.append(PlacementBind(title=title, placement=placement, handler=path))        
 
+        return self.app.router.post(
+            path,
+            response_model=response_model,
+            status_code=status_code,
+            tags=tags,
+            dependencies=dependencies,
+            summary=summary,
+            description=description,
+            response_description=response_description,
+            responses=responses,
+            deprecated=deprecated,
+            operation_id=operation_id,
+            response_model_include=response_model_include,
+            response_model_exclude=response_model_exclude,
+            response_model_by_alias=response_model_by_alias,
+            response_model_exclude_unset=response_model_exclude_unset,
+            response_model_exclude_defaults=response_model_exclude_defaults,
+            response_model_exclude_none=response_model_exclude_none,
+            include_in_schema=include_in_schema,
+            response_class=response_class,
+            name=name,
+            callbacks=callbacks,
+            openapi_extra=openapi_extra,
+            generate_unique_id_function=generate_unique_id_function,
+        )        
+    
 
-
-def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None,  base_auth =None, url_bulder_init_depends=None):
+def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None,  base_auth =None, url_bulder_init_depends=None): 
     
     @router.head("/install")
     async def init_head():
