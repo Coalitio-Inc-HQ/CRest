@@ -30,9 +30,9 @@ async def call_execute(url_builder: UrlBuilder, method: str, param_str: str) -> 
         except HTTPStatusError as error:
             log(LogMessage(
                 time=None,
-                heder=f"Ошибка выполнения запроса. {
+                header=f"Ошибка выполнения запроса. {
                     error.response.status_code}",
-                heder_dict=error.args,
+                header_dict=error.args,
                 body={
                     "url": url_builder.build_url(method, param_str),
                     "method": method,
@@ -44,8 +44,8 @@ async def call_execute(url_builder: UrlBuilder, method: str, param_str: str) -> 
         except Exception as error:
             log(LogMessage(
                 time=None,
-                heder="Неизвестная ошибка.",
-                heder_dict=error.args,
+                header="Неизвестная ошибка.",
+                header_dict=error.args,
                 body={
                     "url": url_builder.build_url(method, param_str),
                     "method": method,
