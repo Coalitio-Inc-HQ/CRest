@@ -136,9 +136,12 @@ app = BitrixAPI(
                       PlacementBind("settings", "LANDING_SETTINGS", "/settings"),
                       PlacementBind("CRM_LEAD_DETAIL_ACTIVITY", "CRM_LEAD_DETAIL_ACTIVITY", "/CRM_LEAD_DETAIL_ACTIVITY")
                       ]
-    ).app
+    )
 
-uvicorn.run(app, host=settings.APP_HOST, port=settings.APP_PORT)
 
-# можно ли открыто хранить токены в бд?
-# индентифицировать ли отдельного пользователя?
+@app.add_event_bind("onCrmContactAdd1")
+async def onCrmContactAdd(body: dict | None = Depends(decode_body_request)): 
+    pass
+
+uvicorn.run(app.app, host=settings.APP_HOST, port=settings.APP_PORT)
+
