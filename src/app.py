@@ -96,6 +96,13 @@ class BitrixAPI:
 
         self.app = FastAPI()
 
+        self.get = self.app.get
+        self.head = self.app.head
+        self.put = self.app.put
+        self.delete = self.app.delete
+        self.post = self.app.post
+
+        
         # Убрать в последствии
         for rout in routers:
             self.app.include_router(rout)
@@ -169,151 +176,147 @@ class BitrixAPI:
         self.build_app(router)
         self.app.include_router(router, tags=["webhook"])
 
-    def install_decorator(self, func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            return await func(*args, **kwargs)
-        return wrapper
 
-    def index_decorator(self, func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            return await func(*args, **kwargs)
-        return wrapper
 
-    def build_app(self, router: APIRouter):
+def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None,  base_auth =None, url_bulder_init_depends=None):
+    
+    @router.head("/install")
+    async def init_head():
+        pass
 
-        @router.head("/install")
-        async def init_head():
-            pass
-
-        @router.head("/index")
-        async def index_head():
-            pass
-
-        @router.post("/install", response_class=HTMLResponse)
-        @self.install_decorator
-        async def install_post(url_builder: UrlBuilder = Depends(self.url_bulder_init_depends), body: dict | None = Depends(get_body)):
-            if (body["PLACEMENT"] == "DEFAULT"):
-                return """
-                <head>
-                    <script src="//api.bitrix24.com/api/v1/"></script>
-                    <script>
-                        BX24.init(function(){
-                            BX24.installFinish();
-                        });
-                    </script>
-                </head>
-                <body>
-                        installation has been finished.
-                </body>
-                """
-            else:
-                return """
-                <body>
-                        Installation has been fail.
-                </body>
-                """
-
-        @router.get("/index")
-        @self.index_decorator
-        async def index_get(code: str, domain: str, member_id: str, scope: str, server_domain: str, request: Request, session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
+    @router.head("/index")
+    async def index_head():
+        pass
+    
+    @router.post("/install", response_class=HTMLResponse)
+    async def install_post(url_builder: UrlBuilder = Depends(url_bulder_init_depends), body: dict | None = Depends(get_body)):
+        
+        if (body["PLACEMENT"]=="DEFAULT"):
 
             bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
+            
+            
+            return """
+            <head>
+                <script src="//api.bitrix24.com/api/v1/"></script>
+                <script>
+                    BX24.init(function(){
+                        BX24.installFinish();
+                    });
+                </script>
+            </head>
+            <body>
+                    installation has been finished.
+            </body>
+            """
+        else:
+            return """
+            <body>
+                    Installation has been fail.
+            </body>
+            """
 
-            url_builder = OAuth2UrlBuilder(code)
-            await url_builder.get_auth()
+    @router.get("/index")
+    async def index_get(code:str, domain:str, member_id:str, scope:str, server_domain: str, request: Request , session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
 
-            res = await bitrix_api.call_method(url_builder, "crm.contact.add",
-                                               {
-                                                   "FIELDS": {
-                                                       "NAME": "Иван",
-                                                       "LAST_NAME": "Петров",
-                                                       "EMAIL": [
-                                                           {
-                                                               "VALUE": "mail@example.com",
-                                                               "VALUE_TYPE": "WORK"
-                                                           }
-                                                       ],
-                                                       "PHONE": [
-                                                           {
-                                                               "VALUE": "555888",
-                                                               "VALUE_TYPE": "WORK"
-                                                           }
-                                                       ]
-                                                   }
-                                               })
+        bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
 
-            return {"res": res}
+        url_builder = OAuth2UrlBuilder(code)
+        await url_builder.get_auth()
 
-        @router.post("/index")
-        @self.index_decorator
-        async def index_post(url_builder: UrlBuilder = Depends(self.url_bulder_depends)):
+        res = await bitrix_api.call_method(url_builder,"crm.contact.add",
+                                                    {
+                                                        "FIELDS":{
+                                                            "NAME": "Иван",
+                                                            "LAST_NAME": "Петров",
+                                                            "EMAIL":[
+                                                                {
+                                                                    "VALUE": "mail@example.com",
+                                                                    "VALUE_TYPE": "WORK"
+                                                                }
+                                                            ],
+                                                            "PHONE":[
+                                                                {
+                                                                    "VALUE": "555888",
+                                                                    "VALUE_TYPE": "WORK"
+                                                                }
+                                                            ]
+                                                        }
+                                                    })
 
-            res = await self.call_api_bitrix.call_method(url_builder, "crm.contact.add",
-                                                         {
-                                                             "FIELDS": {
-                                                                 "NAME": "Иван",
-                                                                 "LAST_NAME": "Петров",
-                                                                 "EMAIL": [
-                                                                     {
-                                                                         "VALUE": "mail@example.com",
-                                                                         "VALUE_TYPE": "WORK"
-                                                                     }
-                                                                 ],
-                                                                 "PHONE": [
-                                                                     {
-                                                                         "VALUE": "555888",
-                                                                         "VALUE_TYPE": "WORK"
-                                                                     }
-                                                                 ]
-                                                             }
-                                                         })
 
-            res1 = await self.call_api_bitrix.call_batch(
-                url_builder,
-                [
-                    {
-                        "method": "crm.contact.add",
-                        "params": {
-                            "FIELDS": {
-                                "NAME": "Иван1",
-                                "LAST_NAME": "Петров1"
-                            }
-                        }
-                    },
-                    {
-                        "method": "crm.contact.add",
-                        "params": {
-                            "FIELDS": {
-                                "NAME": "Иван2",
-                                "LAST_NAME": "Петров2"
-                            }
+        return {"res":res}
+
+    @router.post("/index")
+    async def index_post(url_builder: UrlBuilder = Depends(base_auth),):
+
+        bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
+
+        res = await bitrix_api.call_method(url_builder,"crm.contact.add",
+                                                    {
+                                                        "FIELDS":{
+                                                            "NAME": "Иван",
+                                                            "LAST_NAME": "Петров",
+                                                            "EMAIL":[
+                                                                {
+                                                                    "VALUE": "mail@example.com",
+                                                                    "VALUE_TYPE": "WORK"
+                                                                }
+                                                            ],
+                                                            "PHONE":[
+                                                                {
+                                                                    "VALUE": "555888",
+                                                                    "VALUE_TYPE": "WORK"
+                                                                }
+                                                            ]
+                                                        }
+                                                    })
+
+        res1 = await bitrix_api.call_batch(
+            url_builder,
+            [
+                {
+                    "method": "crm.contact.add",
+                    "params": {
+                        "FIELDS": {
+                            "NAME": "Иван1",
+                            "LAST_NAME": "Петров1"
                         }
                     }
-                ])
-
-            arr = []
-            for i in range(46):
-                arr.append(
-                    {
-                        "method": "crm.contact.add",
-                        "params": {
-                            "FIELDS": {
-                                "NAME": f"Иван{i}",
-                                "LAST_NAME": f"Петров{i}"
-                            }
+                },
+                {
+                    "method": "crm.contact.add",
+                    "params": {
+                        "FIELDS": {
+                            "NAME": "Иван2",
+                            "LAST_NAME": "Петров2"
                         }
                     }
-                )
+                }
+            ])
 
-            arr.insert(10,
-                       {
-                           "method": "crm.contact.add",
-                           "params": {
-                               "FIELDS": "NAME"
-                           }
-                       })
-            res2 = await self.call_api_bitrix.call_batch(url_builder, arr, True)
+        arr = []
+        for i in range(46):
+            arr.append(
+                {
+                    "method": "crm.contact.add",
+                    "params": {
+                        "FIELDS": {
+                            "NAME": f"Иван{i}",
+                            "LAST_NAME": f"Петров{i}"
+                        }
+                    }
+                }
+            )
 
-            return {"res": res, "res1": res1, "res2": res2}
+        arr.insert(10,
+                   {
+                       "method": "crm.contact.add",
+                       "params": {
+                           "FIELDS": "NAME"
+                       }
+                   })
+        res2 = await bitrix_api.call_batch(url_builder, arr, True)
+
+
+        return {"res": res, "res1": res1, "res2": res2}
