@@ -28,7 +28,7 @@ class FrameUrlBuilder(UrlBuilder):
         self.auth.expires = int(new_auth["expires"]),
         self.auth.expires_in = int(new_auth["expires_in"]),
         self.auth.scope = new_auth["scope"],
-        self.auth.domain = new_auth["domain"],
+        self.auth.domain = new_auth["client_endpoint"][8:-6],
         self.auth.status = new_auth["status"],
         self.auth.member_id = new_auth["member_id"],
         self.auth.user_id = int(new_auth["user_id"]),
