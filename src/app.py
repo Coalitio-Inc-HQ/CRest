@@ -35,6 +35,7 @@ from src.call.url_builders.local_application_url_builder import LocalApplication
 from src.call.url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder, get_circulation_application_url_builder_depends
 
 import enum
+from functools import wraps
 
 class BitrixAPIMode(enum.Enum):
     WebHook = WebHookUrlBuilder
@@ -95,6 +96,25 @@ class BitrixAPI:
         self.app.include_router(router, tags=["webhook"])
 
 
+def install_decorator(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        print("Установка приложения...")
+
+        result = await func(*args, **kwargs)       
+
+        return result
+    return wrapper
+
+def index_decorator(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        print("Обработка запроса к индексу...")
+
+        result = await func(*args, **kwargs)
+
+        return result
+    return wrapper
 
 def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None,  base_auth =None):
     
@@ -107,6 +127,7 @@ def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, pla
         pass
     
     @router.post("/install", response_class=HTMLResponse)
+    @install_decorator  
     async def install_post (DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str,request: Request,  session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
         
         form = await request.form() 
@@ -221,11 +242,10 @@ def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, pla
                                                             ]
                                                         }
                                                     })
-
-
         return {"res":res}
 
     @router.post("/index")
+    @index_decorator  
     async def index_post(DOMAIN:str, PROTOCOL:int, LANG:str, APP_SID:str, request: Request,url_builder: UrlBuilder = Depends(base_auth),):
 
         bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
