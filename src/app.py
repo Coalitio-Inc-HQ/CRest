@@ -37,24 +37,72 @@ class BitrixAPIMode(enum.Enum):
     LocalApplication = LocalApplicationUrlBuilder
     CirculationApplication = CirculationApplicationUrlBuilder
 
+from fastapi import FastAPI, Body, APIRouter,Request,Depends, Form
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
+
+from fastapi.datastructures import Default
+
+from .loging.logging_utility import log, LogMessage,log_en
+from .settings import settings
+
+from src.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request, get_body
+
+from .database.session_database import get_session, AsyncSession
+from .database.database_requests import *
+
+from src.call.calls import CallAPIBitrix
+from src.call.url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder
+
+from .event_bind import EventBind
+from .placement_bind import PlacementBind
+
+from src.body_preparer import BodyPreparer
+
+from src.call.call_director import CallDirectorBarrelStrategy
+
+from src.call.url_builders.oauth2_url_builder import OAuth2UrlBuilder
+
+from src.call.url_builders.url_builder import UrlBuilder
+from src.call.url_builders.web_hook_url_builder import WebHookUrlBuilder, get_web_hook_url_builder_depends, get_web_hook_url_builder_init_depends
+from src.call.url_builders.local_application_url_builder import LocalApplicationUrlBuilder, get_local_application_url_builder_depends, get_local_application_url_builder_init_depends
+from src.call.url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder, get_circulation_application_url_builder_depends, get_circulation_application_url_builder_init_depends
+
+import enum
+
+class BitrixAPIMode(enum.Enum):
+    WebHook = WebHookUrlBuilder
+    LocalApplication = LocalApplicationUrlBuilder
+    CirculationApplication = CirculationApplicationUrlBuilder
+
+from functools import wraps
+
 class BitrixAPI:
-    def __init__(self,mode :BitrixAPIMode, call_api_bitrix: CallAPIBitrix, lifespan = None, routers: list[APIRouter] | None = None , event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None) -> None:
-        self.event_binds = event_binds
-        self.placement_binds = placement_binds
+    def __init__(self, mode: BitrixAPIMode, call_api_bitrix: CallAPIBitrix, lifespan=None, routers: list[APIRouter] | None = None, event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None) -> None:
+        self.event_binds = event_binds or []
+        self.placement_binds = placement_binds or []
         self.call_api_bitrix = call_api_bitrix
 
         def lifespan_decorator(app: FastAPI):
-            log(LogMessage(time=None,heder="Сервер запущен.", heder_dict=None,body=None,level=log_en.INFO))
+            log(LogMessage(time=None, heder="Сервер запущен.", heder_dict=None, body=None, level=log_en.INFO))
             if lifespan:
                 gen = lifespan(app)
                 for res in gen:
                     yield res
             else:
                 yield
-            log(LogMessage(time=None,heder="Сервер остановлен.", heder_dict=None,body=None,level=log_en.INFO))
+            log(LogMessage(time=None, heder="Сервер остановлен.", heder_dict=None, body=None, level=log_en.INFO))
 
         self.app = FastAPI()
 
+        self.get = self.app.get
+        self.head = self.app.head
+        self.put = self.app.put
+        self.delete = self.app.delete
+        self.post = self.app.post
+
+        
         # Убрать в последствии
         for rout in routers:
             self.app.include_router(rout)
@@ -71,13 +119,13 @@ class BitrixAPI:
 
         @self.app.exception_handler(Exception)
         async def exception_handler(request: Request, error: Exception):
-            log(LogMessage(time=None,heder="Неизвестная ошибка.", 
-                        heder_dict=error.args,body=
-                        {"url":str(request.url),"query_params":request.query_params._list,
-                            "path_params":request.path_params,
-                            },
-                            level=log_en.ERROR))
-            
+            log(LogMessage(time=None, heder="Неизвестная ошибка.",
+                           heder_dict=error.args, body={
+                               "url": str(request.url), "query_params": request.query_params._list,
+                               "path_params": request.path_params,
+                           },
+                           level=log_en.ERROR))
+
         match mode:
             case BitrixAPIMode.WebHook:
                 self.url_bulder_depends = get_web_hook_url_builder_depends()
@@ -88,22 +136,22 @@ class BitrixAPI:
             case BitrixAPIMode.CirculationApplication:
                 self.url_bulder_depends = get_circulation_application_url_builder_depends(get_session)
                 self.url_bulder_init_depends = get_circulation_application_url_builder_init_depends(get_session)
-        
-        async def url_bulder_init_depends_(url_builder: UrlBuilder = Depends(self.url_bulder_init_depends)) -> None:
+
+        async def url_bulder_init_depends_(url_builder: UrlBuilder = Depends(self.url_bulder_init_depends)) -> UrlBuilder:
             if self.event_binds:
                 event_arr = []
                 for event in self.event_binds:
                     event_arr.append(
                         {
                             "method": "event.bind",
-                            "params":{
+                            "params": {
                                 "event": event.event,
-                                "handler": settings.APP_HANDLER_ADDRESS+event.handler
+                                "handler": settings.APP_HANDLER_ADDRESS + event.handler
                             }
                         }
-                    )             
+                    )
                 await self.call_api_bitrix.call_batch(url_builder, event_arr)
-                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
+                # добавить вывод ошибок
 
             if self.placement_binds:
                 placement_arr = []
@@ -111,21 +159,21 @@ class BitrixAPI:
                     placement_arr.append(
                         {
                             "method": "placement.bind",
-                            "params":{
+                            "params": {
                                 "PLACEMENT": placement.placement,
-                                "HANDLER": settings.APP_HANDLER_ADDRESS+placement.handler,
+                                "HANDLER": settings.APP_HANDLER_ADDRESS + placement.handler,
                                 "TITLE": placement.title
                             }
                         }
                     )
                 await self.call_api_bitrix.call_batch(url_builder, placement_arr)
-                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! добавить вывод ошибок
+                # добавить вывод ошибок
             return url_builder
         self.url_bulder_init_depends = url_bulder_init_depends_
 
         # Убрать в последствии
         router = APIRouter()
-        build_app(router, event_binds, placement_binds,self.url_bulder_depends, self.url_bulder_init_depends)
+        self.build_app(router)
         self.app.include_router(router, tags=["webhook"])
 
 
