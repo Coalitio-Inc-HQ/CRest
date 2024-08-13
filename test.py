@@ -25,36 +25,59 @@ async def run():
     #                                   }
     #                                 )
     #   print(res)
-
-    for i in range(1):
+    # Тест operating
+    while True:  
         arr = []
-        for i in range(3):
+        for i in range(20):  
             arr.append(
                 {
                     "method": "crm.contact.add",
                     "params":{
                         "FIELDS":{
-                            "NAME":f"Иван{i}",
-                            "LAST_NAME":f"Петров{i}"
+                            "NAME":f"Иванко{i}",
+                            "LAST_NAME":f"Петрович{i}"
                         }
                     }
                 }
             )
 
-        # arr.insert(50,
-        #         {
-        #             "method": "crm.contac1t.add",
-        #             "params":{
-        #                 "FIELDS":{
-        #                     "NAME":f"Иван{i}",
-        #                     "LAST_NAME":f"Петров{i}"
-        #                 }
-        #             }
-        #         }
-        #     )
+        try:
+            res1 = await bitrix_api.call_batch(web_hook_url_builder, arr)
+            print(res1)
+        except Exception as e:
+            print(f"Exception occurred: {e}")
 
-        res1 = await bitrix_api.call_batch(web_hook_url_builder,arr)
-        print(res1)
+
+
+    # for i in range(1):
+    #     arr = []
+    #     for i in range(3):
+    #         arr.append(
+    #             {
+    #                 "method": "crm.contact.add",
+    #                 "params":{
+    #                     "FIELDS":{
+    #                         "NAME":f"Иван{i}",
+    #                         "LAST_NAME":f"Петров{i}"
+    #                     }
+    #                 }
+    #             }
+    #         )
+
+    #     # arr.insert(50,
+    #     #         {
+    #     #             "method": "crm.contac1t.add",
+    #     #             "params":{
+    #     #                 "FIELDS":{
+    #     #                     "NAME":f"Иван{i}",
+    #     #                     "LAST_NAME":f"Петров{i}"
+    #     #                 }
+    #     #             }
+    #     #         }
+    #     #     )
+
+    #     res1 = await bitrix_api.call_batch(web_hook_url_builder,arr)
+    #     print(res1)
 
 
     # lis = await get_list( web_hook_url_builder,"crm.contact.list")
