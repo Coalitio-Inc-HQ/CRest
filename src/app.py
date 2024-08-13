@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Body, APIRouter, Request, Depends, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Body, APIRouter, Request, Depends
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.params import Depends
 from fastapi.types import  IncEx
@@ -13,7 +13,7 @@ from .settings import settings
 
 from src.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
-from .database.session_database import get_session, AsyncSession
+from .database.session_database import get_session
 from .database.database_requests import *
 
 from src.call.calls import CallAPIBitrix
@@ -177,11 +177,6 @@ class BitrixAPI:
         
         self.url_bulder_init_depends = url_bulder_init_depends_
 
-        # Убрать в последствии
-        router = APIRouter()
-        build_app(router, self.url_bulder_depends, self.url_bulder_init_depends, self.call_api_bitrix)
-        self.app.include_router(router, tags=["webhook"])
-
 
 
     def add_event_bind(
@@ -305,138 +300,5 @@ class BitrixAPI:
         )        
     
 
-def build_app(router: APIRouter, base_auth =None, url_bulder_init_depends=None, call_api_bitrix = None): 
-    
-    @router.head("/install")
-    async def init_head():
-        pass
-
-    @router.head("/index")
-    async def index_head():
-        pass
-    
-    @router.post("/install", response_class=HTMLResponse)
-    async def install_post(url_builder = Depends(url_bulder_init_depends), body: dict | None = Depends(get_body)):
-        url_builder =url_builder
-
-        if (body["PLACEMENT"]=="DEFAULT"):
-            
-            return """
-            <head>
-                <script src="//api.bitrix24.com/api/v1/"></script>
-                <script>
-                    BX24.init(function(){
-                        BX24.installFinish();
-                    });
-                </script>
-            </head>
-            <body>
-                    installation has been finished.
-            </body>
-            """
-        else:
-            return """
-            <body>
-                    Installation has been fail.
-            </body>
-            """
-
-    @router.get("/index")
-    async def index_get(url_builder = Depends(get_oauth_2_url_builder_depends)):
-
-        res = await call_api_bitrix.call_method(url_builder,"crm.contact.add",
-                                                    {
-                                                        "FIELDS":{
-                                                            "NAME": "Иван",
-                                                            "LAST_NAME": "Петров",
-                                                            "EMAIL":[
-                                                                {
-                                                                    "VALUE": "mail@example.com",
-                                                                    "VALUE_TYPE": "WORK"
-                                                                }
-                                                            ],
-                                                            "PHONE":[
-                                                                {
-                                                                    "VALUE": "555888",
-                                                                    "VALUE_TYPE": "WORK"
-                                                                }
-                                                            ]
-                                                        }
-                                                    })
-
-
-        return {"res": res}
-
-    @router.post("/index")
-    async def index_post(url_builder = Depends(base_auth),):
-
-        res = await call_api_bitrix.call_method(url_builder,"crm.contact.add",
-                                                    {
-                                                        "FIELDS":{
-                                                            "NAME": "Иван",
-                                                            "LAST_NAME": "Петров",
-                                                            "EMAIL":[
-                                                                {
-                                                                    "VALUE": "mail@example.com",
-                                                                    "VALUE_TYPE": "WORK"
-                                                                }
-                                                            ],
-                                                            "PHONE":[
-                                                                {
-                                                                    "VALUE": "555888",
-                                                                    "VALUE_TYPE": "WORK"
-                                                                }
-                                                            ]
-                                                        }
-                                                    })
-
-        res1 = await call_api_bitrix.call_batch(
-            url_builder,
-            [
-                {
-                    "method": "crm.contact.add",
-                    "params": {
-                        "FIELDS": {
-                            "NAME": "Иван1",
-                            "LAST_NAME": "Петров1"
-                        }
-                    }
-                },
-                {
-                    "method": "crm.contact.add",
-                    "params": {
-                        "FIELDS": {
-                            "NAME": "Иван2",
-                            "LAST_NAME": "Петров2"
-                        }
-                    }
-                }
-            ])
-
-        arr = []
-        for i in range(46):
-            arr.append(
-                {
-                    "method": "crm.contact.add",
-                    "params": {
-                        "FIELDS": {
-                            "NAME": f"Иван{i}",
-                            "LAST_NAME": f"Петров{i}"
-                        }
-                    }
-                }
-            )
-
-        arr.insert(10,
-                   {
-                       "method": "crm.contact.add",
-                       "params": {
-                           "FIELDS": "NAME"
-                       }
-                   })
-        res2 = await call_api_bitrix.call_batch(url_builder, arr, True)
-
-
-        return {"res": res, "res1": res1, "res2": res2}
 
 
