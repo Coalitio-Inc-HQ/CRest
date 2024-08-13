@@ -95,134 +95,194 @@ class CallDirectorBarrelStrategy(CallDirector):
 
 
 
-    async def call_bath_request(self, url_builder: UrlBuilder, calls: list, halt: bool) -> Any:
+    async def call_bath_request(self,url_builder: UrlBuilder,calls:list, halt: bool) -> Any:
         domain_info = self.get_domain_info(url_builder)
 
-        while domain_info["number_of_requests"] > 70:
+        while domain_info["number_of_requests"]>70:
             await asyncio.sleep(0.5)
+        
+        domain_info["number_of_requests"]+=1
 
-        domain_info["number_of_requests"] += 1
-
-        total_res = {
-            "result": {
-                "result": {},
-                "result_error": {},
-                "result_time": {}
-            }
-        }
         try:
-            start_index = 0
-            fails = []
+            if halt:
+                total_res = {
+                    "result":{
+                        "result":{
 
-            while start_index != len(calls):
-                end_index = min(start_index + settings.BATCH_COUNT, len(calls))
-                build_params = call_parameters_encoder_batсh(calls, start_index, end_index) + f"&halt={'1' if halt else '0'}"
+                        },
+                        "result_error":{
 
-                try:
-                    res = await self._execute_batch_request(url_builder, build_params)
+                        },
+                        "result_time":{
 
-                    if "error" in res:
-                        if res["error"] in ["OPERATION_TIME_LIMIT", "QUERY_LIMIT_EXCEEDED"]:
-                            raise self.Exception503()
-                        else:
-                            break
+                        }
+                    }
+                }
+                start_index = 0
+                
+                while start_index != len(calls):
+                    end_index = start_index+settings.BATCH_COUNT if start_index+settings.BATCH_COUNT<= len(calls) else len(calls)
+                    build_params = call_parameters_encoder_batсh(calls, start_index, end_index)+f"&halt=1"
 
-                    last_index = self._update_total_results(res, total_res, halt)
-                    start_index = last_index
-                    if halt or ("result_error" in res["result"] and res["result"]["result_error"]):
-                        break
-                    if not halt:
-                        fails.extend(self._process_errors(res, total_res))
+                    try:
+                        res = await call_execute(url_builder,"batch", build_params)
 
-                except self.Exception503:
-                    await asyncio.sleep(1)
-                except HTTPStatusError as error:
-                    if error.response.status_code == 503:
+                        if "error" in res:
+                            if res["error"] =="OPERATION_TIME_LIMIT":
+                                raise self.Exception503()
+                            elif res["error"] == "QUERY_LIMIT_EXCEEDED":
+                                raise self.Exception503()
+                            else:
+                                break
+                            
+                        if (type(res["result"]["result"]) ==dict):
+                            last_index = -1
+                            for key, value in res["result"]["result"].items():
+                                total_res["result"]["result"][key] = value
+                                if int(key)>last_index:
+                                    last_index = int(key)
+                            start_index = last_index
+
+                        if (type(res["result"]["result_time"]) ==dict):
+                            for key, value in res["result"]["result_time"].items():
+                                total_res["result"]["result_time"][key] = value
+
+
+                        if "result_error" in res["result"]:
+                            if type(res["result"]["result_error"]) == dict:
+                                ex = False
+                                for key, value in res["result"]["result_error"].items():
+                                    if "error" in value and value["error"] == "OPERATION_TIME_LIMIT":
+                                        raise self.Exception503()
+                                    else:
+                                        total_res["result"]["result_error"][key]=value
+                                        ex = True
+                                        break
+                                if ex:
+                                    break
+                        
+
+                    except self.Exception503 as error:
                         await asyncio.sleep(1)
-                    else:
-                        raise error
+                    except HTTPStatusError as error: 
+                            if error.response.status_code == 503:
+                                await asyncio.sleep(1)
+                            else:
+                                raise error
+                return total_res
 
-            if not halt:
-                await self._retry_failed_requests(url_builder, calls, total_res, fails)
 
-            return total_res
+            else:
+                total_res = {
+                    "result":{
+                        "result":{
+
+                        },
+                        "result_error":{
+
+                        },
+                        "result_time":{
+
+                        }
+                    }
+                }
+                start_index = 0
+                
+                fails = []
+
+                while start_index != len(calls):
+                    end_index = start_index+settings.BATCH_COUNT if start_index+settings.BATCH_COUNT<= len(calls) else len(calls)
+                    build_params = call_parameters_encoder_batсh(calls, start_index, end_index)+f"&halt=0"
+
+                    try:
+                        res = await call_execute(url_builder,"batch", build_params)
+
+                        if "error" in res:
+                            if res["error"] =="OPERATION_TIME_LIMIT":
+                                raise self.Exception503()
+                            elif res["error"] == "QUERY_LIMIT_EXCEEDED":
+                                raise self.Exception503()
+                            else:
+                                break
+                        
+                        last_index = -1
+                        if (type(res["result"]["result"]) ==dict):
+                            for key, value in res["result"]["result"].items():
+                                total_res["result"]["result"][key] = value
+                                if int(key)>last_index:
+                                    last_index = int(key)
+                        
+
+                        if (type(res["result"]["result_time"]) ==dict):
+                            for key, value in res["result"]["result_time"].items():
+                                total_res["result"]["result_time"][key] = value
+
+
+                        if "result_error" in res["result"]:
+                            if type(res["result"]["result_error"]) == dict:
+                                for key, value in res["result"]["result_error"].items():
+                                    if "error" in value and value["error"] == "OPERATION_TIME_LIMIT":
+                                        fails.append(int(key)-1)
+                                    else:
+                                        total_res["result"]["result_error"][key]=value
+                                    last_index = int(key)
+                        start_index = last_index
+                                        
+                        
+
+                    except self.Exception503 as error:
+                        await asyncio.sleep(1)
+                    except HTTPStatusError as error: 
+                            if error.response.status_code == 503:
+                                await asyncio.sleep(1)
+                            else:
+                                raise error
+                            
+                while len(fails)!= 0:
+                    build_params = call_parameters_encoder_batсh_by_index(calls, fails[0:settings.BATCH_COUNT])+f"&halt=0"
+
+                    try:
+                        res = await call_execute(url_builder,"batch", build_params)
+
+                        if "error" in res:
+                            if res["error"] =="OPERATION_TIME_LIMIT":
+                                raise self.Exception503()
+                            elif res["error"] == "QUERY_LIMIT_EXCEEDED":
+                                raise self.Exception503()
+                            else:
+                                break
+                        
+                        if (type(res["result"]["result"]) ==dict):
+                            for key, value in res["result"]["result"].items():
+                                total_res["result"]["result"][key] = value
+                                fails.remove(int(key)-1)
+
+                        if (type(res["result"]["result_time"]) ==dict):
+                            for key, value in res["result"]["result_time"].items():
+                                total_res["result"]["result_time"][key] = value
+
+                        if "result_error" in res["result"]:
+                            if type(res["result"]["result_error"]) == dict:
+                                for key, value in res["result"]["result_error"].items():
+                                    if "error" in value and value["error"] == "OPERATION_TIME_LIMIT":
+                                        pass
+                                    else:
+                                        total_res["result"]["result_error"][key]=value
+                                        fails.remove(int(key)-1)
+                                        
+                        
+
+                    except self.Exception503 as error:
+                        await asyncio.sleep(1)
+                    except HTTPStatusError as error: 
+                            if error.response.status_code == 503:
+                                await asyncio.sleep(1)
+                            else:
+                                raise error
+
+
+                return total_res
 
         finally:
-            domain_info["number_of_requests"] -= 1
-
-    async def _execute_batch_request(self, url_builder: UrlBuilder, build_params: str) -> dict:
-        return await call_execute(url_builder, "batch", build_params)
-
-    def _update_total_results(self, res: dict, total_res: dict, halt: bool) -> int:
-        last_index = -1
-        if isinstance(res["result"]["result"], dict):
-            for key, value in res["result"]["result"].items():
-                total_res["result"]["result"][key] = value
-                last_index = max(last_index, int(key))
-
-        if isinstance(res["result"]["result_time"], dict):
-            for key, value in res["result"]["result_time"].items():
-                total_res["result"]["result_time"][key] = value
-
-        if "result_error" in res["result"]:
-            if isinstance(res["result"]["result_error"], dict):
-                for key, value in res["result"]["result_error"].items():
-                    total_res["result"]["result_error"][key] = value
-                    last_index = max(last_index, int(key))
-                    if halt and "error" in value and value["error"] == "OPERATION_TIME_LIMIT":
-                        break
-        return last_index
-
-    def _process_errors(self, res: dict, total_res: dict) -> list:
-        fails = []
-        if "result_error" in res["result"]:
-            if isinstance(res["result"]["result_error"], dict):
-                for key, value in res["result"]["result_error"].items():
-                    if "error" in value and value["error"] == "OPERATION_TIME_LIMIT":
-                        fails.append(int(key) - 1)
-                    else:
-                        total_res["result"]["result_error"][key] = value
-        return fails
-
-    async def _retry_failed_requests(self, url_builder: UrlBuilder, calls: list, total_res: dict, fails: list) -> None:
-        while fails:
-            build_params = call_parameters_encoder_batсh_by_index(calls, fails[:settings.BATCH_COUNT]) + "&halt=0"
-            try:
-                res = await self._execute_batch_request(url_builder, build_params)
-
-                if "error" in res:
-                    if res["error"] in ["OPERATION_TIME_LIMIT", "QUERY_LIMIT_EXCEEDED"]:
-                        raise self.Exception503()
-                    else:
-                        break
-
-                if isinstance(res["result"]["result"], dict):
-                    for key, value in res["result"]["result"].items():
-                        total_res["result"]["result"][key] = value
-                        fails.remove(int(key) - 1)
-
-                if isinstance(res["result"]["result_time"], dict):
-                    for key, value in res["result"]["result_time"].items():
-                        total_res["result"]["result_time"][key] = value
-
-                if "result_error" in res["result"]:
-                    if isinstance(res["result"]["result_error"], dict):
-                        for key, value in res["result"]["result_error"].items():
-                            if "error" in value and value["error"] != "OPERATION_TIME_LIMIT":
-                                total_res["result"]["result_error"][key] = value
-                                fails.remove(int(key) - 1)
-
-            except self.Exception503:
-                await asyncio.sleep(1)
-            except HTTPStatusError as error:
-                if error.response.status_code == 503:
-                    await asyncio.sleep(1)
-                else:
-                    raise error
-
-
-
-    class Exception503(Exception):
-        pass
-
+            domain_info["number_of_requests"]-=1
 
