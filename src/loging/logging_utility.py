@@ -6,28 +6,28 @@ import datetime
 cmd_logger = logging.getLogger(__name__)
 
 
-def log_info(messege: LogMessage):
-    cmd_logger.info(f"INFO: {messege.heder}")
+def log_info(message: LogMessage):
+    cmd_logger.info(f"INFO: {message.header}")
 
-    cmd_logger.info(messege.model_dump_json())
+    cmd_logger.info(message.model_dump_json())
 
-    json_logger.info(messege.model_dump_json())
-
-
-def log_error(messege: LogMessage):
-    cmd_logger.error(f"ERROR: {messege.heder}")
-
-    cmd_logger.error(messege.model_dump_json())
-
-    json_logger.error(messege.model_dump_json())
+    json_logger.info(message.model_dump_json())
 
 
-def log_debug(messege: LogMessage):
-    cmd_logger.debug(f"DEBUG: {messege.heder}")
+def log_error(message: LogMessage):
+    cmd_logger.error(f"ERROR: {message.header}")
 
-    cmd_logger.debug(messege.model_dump_json())
+    cmd_logger.error(message.model_dump_json())
 
-    json_logger.debug(messege.model_dump_json())
+    json_logger.error(message.model_dump_json())
+
+
+def log_debug(message: LogMessage):
+    cmd_logger.debug(f"DEBUG: {message.header}")
+
+    cmd_logger.debug(message.model_dump_json())
+
+    json_logger.debug(message.model_dump_json())
 
 
 log_swith = {
@@ -37,9 +37,9 @@ log_swith = {
 }
 
 
-def log(messege: LogMessage):
-    messege.time = datetime.datetime.now().isoformat()
-    log_swith[messege.level](messege)
+def log(message: LogMessage):
+    message.time = datetime.datetime.now().isoformat()
+    log_swith[message.level](message)
 
 def filter_array_to_str(arr: list) -> list:
     res = []

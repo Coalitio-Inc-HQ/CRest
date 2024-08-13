@@ -11,7 +11,7 @@ class log_en (Enum):
 class LogMessage (BaseModel):
     time: str | None
     level: log_en
-    heder: str 
-    heder_dict: Any | None
+    header: str 
+    header_dict: Any | None
     body: Any | None
 

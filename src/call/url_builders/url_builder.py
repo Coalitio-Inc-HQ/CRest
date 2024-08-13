@@ -126,8 +126,8 @@ class UrlBuilder:
             if "error" in result:
                 log(LogMessage(
                     time=None,
-                    heder="Ошибка при выполнении refresh_auth.",
-                    heder_dict=result["error"],
+                    header="Ошибка при выполнении refresh_auth.",
+                    header_dict=result["error"],
                     body={
                         "paras": params,
                         "result": result
@@ -142,9 +142,9 @@ class UrlBuilder:
         except HTTPStatusError as error:
             log(LogMessage(
                 time=None,
-                heder=f"Ошибка при выполнении refresh_auth. {
+                header=f"Ошибка при выполнении refresh_auth. {
                     error.response.status_code}",
-                heder_dict=error.args,
+                header_dict=error.args,
                 body={
                     "paras": params,
                     "response": error.response.json()
@@ -154,8 +154,8 @@ class UrlBuilder:
         except Exception as error:
             log(LogMessage(
                 time=None,
-                heder="Ошибка при выполнении refresh_auth.",
-                heder_dict=error.args,
+                header="Ошибка при выполнении refresh_auth.",
+                header_dict=error.args,
                 body={"paras": params},
                 level=log_en.ERROR))
             raise ExceptionRefreshAuth(error="undefined")

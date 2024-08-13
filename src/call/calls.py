@@ -70,8 +70,8 @@ def error_catcher(name: str):
                     log(
                         LogMessage(
                             time=None,
-                            heder=f"Ошибка при выполнении декоратора error_catcher, name: {name}.", 
-                            heder_dict={"args": filter_array_to_str(args), "kwargs": filter_dict_to_str(kwargs)},
+                            header=f"Ошибка при выполнении декоратора error_catcher, name: {name}.", 
+                            header_dict={"args": filter_array_to_str(args), "kwargs": filter_dict_to_str(kwargs)},
                             body={"result":result},
                             level=log_en.ERROR
                             )
@@ -93,8 +93,8 @@ def error_catcher(name: str):
             except Exception as error:
                 log(LogMessage(
                         time=None,
-                        heder=f"Ошибка при выполнении декоратора error_catcher, name: {name}.", 
-                        heder_dict={"args": filter_array_to_str(args), "kwargs": filter_dict_to_str(kwargs)},
+                        header=f"Ошибка при выполнении декоратора error_catcher, name: {name}.", 
+                        header_dict={"args": filter_array_to_str(args), "kwargs": filter_dict_to_str(kwargs)},
                         body={"error_args":error.args},
                         level=log_en.ERROR
                         )
