@@ -14,13 +14,13 @@ class WebHookUrlBuilder(UrlBuilder):
         return settings.C_REST_WEB_HOOK_URL
 
 
-async def get_web_hook_url_builder_depends():
+def get_web_hook_url_builder_depends():
     def get_url_builder() -> UrlBuilder:
         return WebHookUrlBuilder()
     return get_url_builder
 
 
-async def get_web_hook_url_builder_init_depends():
+def get_web_hook_url_builder_init_depends():
     def get_init_url_builder() -> UrlBuilder:
         return WebHookUrlBuilder()
     return get_init_url_builder
