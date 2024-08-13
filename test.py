@@ -4,13 +4,16 @@ import asyncio
 from src.call.calls import CallAPIBitrix
 from src.call.call_director import CallDirectorBarrelStrategy
 
-from src.call.url_builders.web_hook_url_builder import web_hook_url_builder
+from src.call.url_builders.web_hook_url_builder import WebHookUrlBuilder
 
 from src.database.database_requests import *
 
 from sqlalchemy import text
 
 async def run():
+
+    web_hook_url_builder = WebHookUrlBuilder()
+
     bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
     # for x in range(2600):
     #   res = await call_method(web_hook_url_builder, "crm.contact.add",
@@ -25,7 +28,7 @@ async def run():
 
     for i in range(1):
         arr = []
-        for i in range(100):
+        for i in range(3):
             arr.append(
                 {
                     "method": "crm.contact.add",

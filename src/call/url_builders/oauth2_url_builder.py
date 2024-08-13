@@ -3,6 +3,7 @@ from src.settings import settings
 from src.database.database_requests import *
 from .url_builder import UrlBuilder
 
+from fastapi import Request
 
 class OAuth2UrlBuilder(UrlBuilder):
     """
@@ -70,3 +71,10 @@ class OAuth2UrlBuilder(UrlBuilder):
 
     def get_name(self) -> str:
         return self.auth.member_id
+
+
+async def get_oauth_2_url_builder_depends(request: Request) -> UrlBuilder:
+    params = request.query_params._dict
+    url_builder = OAuth2UrlBuilder(params["code"])
+    await url_builder.get_auth()
+    return url_builder
