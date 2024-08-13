@@ -62,7 +62,7 @@ def get_local_application_url_builder_depends(filename: str):
     return get_url_builder
 
 
-async def get_local_application_url_builder_init_depends(filename: str):
+def get_local_application_url_builder_init_depends(filename: str):
     def get_init_url_builder(request: Request , body: dict | None = Depends(get_body)) -> UrlBuilder:
         
         params = request.query_params._dict

@@ -11,7 +11,7 @@ from fastapi.routing import APIRoute
 from .loging.logging_utility import log, LogMessage,log_en
 from .settings import settings
 
-from src.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request, get_body
+from src.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
 from .database.session_database import get_session, AsyncSession
 from .database.database_requests import *
@@ -24,23 +24,20 @@ from .placement_bind import PlacementBind
 
 from src.body_preparer import BodyPreparer
 
-from src.call.call_director import CallDirectorBarrelStrategy
-
-from src.call.url_builders.oauth2_url_builder import OAuth2UrlBuilder
-
 from src.call.url_builders.url_builder import UrlBuilder
 from src.call.url_builders.web_hook_url_builder import WebHookUrlBuilder, get_web_hook_url_builder_depends, get_web_hook_url_builder_init_depends
 from src.call.url_builders.local_application_url_builder import LocalApplicationUrlBuilder, get_local_application_url_builder_depends, get_local_application_url_builder_init_depends
 from src.call.url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder, get_circulation_application_url_builder_depends, get_circulation_application_url_builder_init_depends
+
+from src.call.url_builders.oauth2_url_builder import OAuth2UrlBuilder, get_oauth_2_url_builder_depends
+
 
 import enum
 from enum import Enum
 
 from typing import (
     Any,
-    Awaitable,
     Callable,
-    Coroutine,
     Dict,
     List,
     Optional,
@@ -67,6 +64,14 @@ class BitrixAPIMode(enum.Enum):
     LocalApplication = LocalApplicationUrlBuilder
     CirculationApplication = CirculationApplicationUrlBuilder
 
+
+
+AppType = TypeVar("AppType", bound="FastAPI")
+
+class BitrixAPIMode(enum.Enum):
+    WebHook = WebHookUrlBuilder
+    LocalApplication = LocalApplicationUrlBuilder
+    CirculationApplication = CirculationApplicationUrlBuilder
 
 class BitrixAPI:
     def __init__(
@@ -102,10 +107,6 @@ class BitrixAPI:
         self.post = self.app.post
 
         
-        # Убрать в последствии
-        for rout in routers:
-            self.app.include_router(rout)
-
         self.app.add_middleware(BodyPreparer)
 
         self.app.add_middleware(
@@ -178,8 +179,10 @@ class BitrixAPI:
 
         # Убрать в последствии
         router = APIRouter()
-        build_app(router)
+        build_app(router, self.url_bulder_depends, self.url_bulder_init_depends, self.call_api_bitrix)
         self.app.include_router(router, tags=["webhook"])
+
+
 
     def add_event_bind(
         self,
@@ -302,7 +305,7 @@ class BitrixAPI:
         )        
     
 
-def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, placement_binds: list[PlacementBind] | None = None,  base_auth =None, url_bulder_init_depends=None): 
+def build_app(router: APIRouter, base_auth =None, url_bulder_init_depends=None, call_api_bitrix = None): 
     
     @router.head("/install")
     async def init_head():
@@ -313,12 +316,10 @@ def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, pla
         pass
     
     @router.post("/install", response_class=HTMLResponse)
-    async def install_post(url_builder: UrlBuilder = Depends(url_bulder_init_depends), body: dict | None = Depends(get_body)):
-        
-        if (body["PLACEMENT"]=="DEFAULT"):
+    async def install_post(url_builder = Depends(url_bulder_init_depends), body: dict | None = Depends(get_body)):
+        url_builder =url_builder
 
-            bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
-            
+        if (body["PLACEMENT"]=="DEFAULT"):
             
             return """
             <head>
@@ -341,14 +342,9 @@ def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, pla
             """
 
     @router.get("/index")
-    async def index_get(code:str, domain:str, member_id:str, scope:str, server_domain: str, request: Request , session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)):
+    async def index_get(url_builder = Depends(get_oauth_2_url_builder_depends)):
 
-        bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
-
-        url_builder = OAuth2UrlBuilder(code)
-        await url_builder.get_auth()
-
-        res = await bitrix_api.call_method(url_builder,"crm.contact.add",
+        res = await call_api_bitrix.call_method(url_builder,"crm.contact.add",
                                                     {
                                                         "FIELDS":{
                                                             "NAME": "Иван",
@@ -372,11 +368,9 @@ def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, pla
         return {"res": res}
 
     @router.post("/index")
-    async def index_post(url_builder: UrlBuilder = Depends(base_auth),):
+    async def index_post(url_builder = Depends(base_auth),):
 
-        bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
-
-        res = await bitrix_api.call_method(url_builder,"crm.contact.add",
+        res = await call_api_bitrix.call_method(url_builder,"crm.contact.add",
                                                     {
                                                         "FIELDS":{
                                                             "NAME": "Иван",
@@ -396,7 +390,7 @@ def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, pla
                                                         }
                                                     })
 
-        res1 = await bitrix_api.call_batch(
+        res1 = await call_api_bitrix.call_batch(
             url_builder,
             [
                 {
@@ -440,7 +434,7 @@ def build_app(router: APIRouter, event_binds: list[EventBind] | None = None, pla
                            "FIELDS": "NAME"
                        }
                    })
-        res2 = await bitrix_api.call_batch(url_builder, arr, True)
+        res2 = await call_api_bitrix.call_batch(url_builder, arr, True)
 
 
         return {"res": res, "res1": res1, "res2": res2}
