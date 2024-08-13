@@ -94,6 +94,7 @@ class CallDirectorBarrelStrategy(CallDirector):
         return res
 
 
+
     async def call_bath_request(self,url_builder: UrlBuilder,calls:list, halt: bool) -> Any:
         domain_info = self.get_domain_info(url_builder)
 
@@ -285,8 +286,17 @@ class CallDirectorBarrelStrategy(CallDirector):
         finally:
             domain_info["number_of_requests"]-=1
 
-
     class Exception503(Exception):
         pass
 
+
+class CustomCallDirector(CallDirectorBarrelStrategy):
+    def __init__(self):
+        super().__init__()
+
+    async def call_request(self, url_builder: UrlBuilder, method: str, params: dict) -> Any:
+        pass
+
+    async def call_bath_request(self, url_builder: UrlBuilder, calls: list, halt: bool) -> Any:
+        pass
 
