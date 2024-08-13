@@ -76,7 +76,6 @@ async def LEFT_MENU(url_builder = Depends(get_frame_url_builder_depends)):
                                                     ]
                                                 }
                                             })
-
     return res
 
 @app.add_placement_bind("CRM_DEAL_DETAIL_ACTIVITY", "DEAL", response_class=HTMLResponse)
