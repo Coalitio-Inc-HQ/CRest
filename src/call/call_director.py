@@ -286,6 +286,8 @@ class CallDirectorBarrelStrategy(CallDirector):
         finally:
             domain_info["number_of_requests"]-=1
 
+    class Exception503(Exception):
+        pass
 
 
 class CustomCallDirector(CallDirectorBarrelStrategy):
