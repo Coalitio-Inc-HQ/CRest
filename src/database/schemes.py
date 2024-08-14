@@ -16,6 +16,8 @@ class AuthDTO(BaseModel):
     member_id: str | None
     user_id: int | None
     refresh_token: str
+
+    settings: dict | None
     """
     lang: str | None
     app_id: str | None
@@ -29,3 +31,5 @@ class AuthDTO(BaseModel):
     member_id: str | None
     user_id: int | None
     refresh_token: str | None
+
+    settings: dict | None

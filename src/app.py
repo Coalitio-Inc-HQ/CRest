@@ -128,8 +128,8 @@ class BitrixAPI:
 
         match mode:
             case BitrixAPIMode.WebHook:
-                self.url_bulder_depends = get_web_hook_url_builder_depends()
-                self.url_bulder_init_depends = get_web_hook_url_builder_init_depends()
+                self.url_bulder_depends = get_web_hook_url_builder_depends("web_hook_settings.json")
+                self.url_bulder_init_depends = get_web_hook_url_builder_init_depends("web_hook_settings.json")
             case BitrixAPIMode.LocalApplication:
                 self.url_bulder_depends = get_local_application_url_builder_depends("conf.json")
                 self.url_bulder_init_depends = get_local_application_url_builder_init_depends("conf.json")

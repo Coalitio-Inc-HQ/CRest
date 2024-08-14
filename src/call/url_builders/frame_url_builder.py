@@ -40,7 +40,7 @@ class FrameUrlBuilder(UrlBuilder):
 
 
     async def update_domain(self, domain: str) -> None:
-        self.auth.client_endpoint = domain
+        self.auth.domain = domain
 
     def get_name(self) -> str:
         return self.auth.member_id
@@ -61,6 +61,8 @@ def get_frame_url_builder_depends(request: Request ,body: dict | None = Depends(
             member_id = body["member_id"],
             user_id=None,
             refresh_token = body["REFRESH_ID"],
+
+            settings=None
         )
     
     return FrameUrlBuilder(auth)

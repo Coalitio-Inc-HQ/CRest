@@ -47,13 +47,19 @@ class LocalApplicationUrlBuilder(UrlBuilder):
 
 
     async def update_domain(self, domain: str) -> None:
-        self.auth.client_endpoint = domain
+        self.auth.domain = domain
 
         with open(self.filename, 'w', encoding='utf-8') as f:
             f.write(self.auth.model_dump_json())
 
     def get_name(self) -> str:
         return self.auth.member_id
+    
+    async def set_settings(self, settings: dict) -> None:
+        self.auth.settings = settings
+
+        with open(self.filename, 'w', encoding='utf-8') as f:
+            f.write(self.auth.model_dump_json())
 
 
 def get_local_application_url_builder_depends(filename: str):
@@ -80,6 +86,8 @@ def get_local_application_url_builder_init_depends(filename: str):
                 member_id = body["member_id"],
                 user_id=None,
                 refresh_token = body["REFRESH_ID"],
+                
+                settings={}
             )
 
         with open(filename, 'w', encoding='utf-8') as f:

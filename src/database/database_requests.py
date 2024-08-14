@@ -21,7 +21,8 @@ async def insert_auth(session: AsyncSession, auth: AuthDTO) -> None:
                             status = auth.status,
                             member_id = auth.member_id,
                             user_id = auth.user_id,
-                            refresh_token = auth.refresh_token
+                            refresh_token = auth.refresh_token,
+                            settings = auth.settings
                             ))
     else:
         await session.execute(update(AuthORM).where(AuthORM.member_id==auth.member_id).values(
@@ -34,7 +35,8 @@ async def insert_auth(session: AsyncSession, auth: AuthDTO) -> None:
                                                                                                 domain = auth.domain,
                                                                                                 status = auth.status,
                                                                                                 user_id = auth.user_id,
-                                                                                                refresh_token = auth.refresh_token
+                                                                                                refresh_token = auth.refresh_token,
+                                                                                                settings = auth.settings
                                                                                                 ))
     await session.commit()
 
@@ -69,10 +71,10 @@ async def update_auth(session: AsyncSession,
 
 async def update_auth_domain(session: AsyncSession, member_id: str, domain: str) -> None:
     """
-    Используется для обновления client_endpoint в AuthDTO.
+    Используется для обновления domain в AuthDTO.
     """
     await session.execute(update(AuthORM).where(AuthORM.member_id==member_id).values(
-                                                                                    client_endpoint = domain,
+                                                                                    domain = domain,
                                                                                     member_id = member_id,
                                                                                     ))
     
@@ -85,3 +87,15 @@ async def get_auth_by_member_id(session: AsyncSession, member_id: str) -> AuthDT
     """
     res_orm = (await session.execute(select(AuthORM).where(AuthORM.member_id==member_id))).scalar()
     return AuthDTO.model_validate(res_orm,from_attributes=True)
+
+
+async def update_auth_settings(session: AsyncSession, member_id: str, settings: str) -> None:
+    """
+    Используется для обновления настроек приложения для портала в AuthDTO.
+    """
+    await session.execute(update(AuthORM).where(AuthORM.member_id==member_id).values(
+                                                                                    settings = settings,
+                                                                                    member_id = member_id,
+                                                                                    ))
+    
+    await session.commit()

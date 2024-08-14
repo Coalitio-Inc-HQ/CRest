@@ -5,8 +5,6 @@ from .url_builder import UrlBuilder
 from fastapi import Depends, Request
 from src.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
-from src.database.database_requests import insert_auth
-
 class CirculationApplicationUrlBuilder(UrlBuilder):
     def __init__(self, auth: AuthDTO, session: AsyncSession):
         super().__init__(True, True)
@@ -51,13 +49,17 @@ class CirculationApplicationUrlBuilder(UrlBuilder):
         self.auth.refresh_token = new_auth["refresh_token"]
 
 
-
     async def update_domain(self, domain: str) -> None:
         await update_auth_domain(self.session, self.auth.member_id, domain)
-        self.auth.client_endpoint = domain
+        self.auth.domain = domain
 
     def get_name(self) -> str:
         return self.auth.member_id
+    
+    async def set_settings(self, settings: dict) -> None:
+        await update_auth_domain(self.session, settings)
+        self.auth.settings = settings
+
 
 def get_circulation_application_url_builder_depends(get_session):
     async def get_url_builder(session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)) -> UrlBuilder:
@@ -91,6 +93,8 @@ def get_circulation_application_url_builder_init_depends(get_session):
                 member_id = body["member_id"],
                 user_id=None,
                 refresh_token = body["REFRESH_ID"],
+
+                settings={}
             )
 
         await insert_auth(session, auth)

@@ -1,9 +1,18 @@
 from .url_builder import UrlBuilder
 from src.settings import settings
 
+import json
+
 class WebHookUrlBuilder(UrlBuilder):
-    def __init__(self):
+    def __init__(self, filename: str):
         super().__init__(False, False)
+        self.filename=filename
+
+        try:
+            with open(filename) as json_data:
+                self.settings = json.loads(json_data.read())
+        except:
+            self.settings = {}
 
 
     def build_url (self, method:str, params: str) -> str:
@@ -14,13 +23,15 @@ class WebHookUrlBuilder(UrlBuilder):
         return settings.C_REST_WEB_HOOK_URL
 
 
-def get_web_hook_url_builder_depends():
+def get_web_hook_url_builder_depends(filename: str):
     def get_url_builder() -> UrlBuilder:
-        return WebHookUrlBuilder()
+        return WebHookUrlBuilder(filename)
     return get_url_builder
 
 
-def get_web_hook_url_builder_init_depends():
+def get_web_hook_url_builder_init_depends(filename: str):
     def get_init_url_builder() -> UrlBuilder:
-        return WebHookUrlBuilder()
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(json.dumps({}))
+        return WebHookUrlBuilder(filename)
     return get_init_url_builder

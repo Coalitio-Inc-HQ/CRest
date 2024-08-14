@@ -163,3 +163,4 @@ cython_debug/
 
 log.json
 conf.json
+web_hook_settings.json
