@@ -1,5 +1,6 @@
-class PlacementBind:
-    def __init__(self, title: str, placement: str, handler: str) -> None:
-        self.title = title
-        self.placement = placement
-        self.handler = handler
+from pydantic import BaseModel
+
+class PlacementBind(BaseModel):
+    title: str
+    placement: str
+    handler: str

@@ -1,6 +1,9 @@
 from httpx import AsyncClient, HTTPStatusError
 from typing import Any
-from src.loging.logging_utility import log, LogMessage, log_en
+
+from src.loging.logging_utility import log, LogMessage, LogHeader,log_en,filter_array_to_str,filter_dict_to_str
+import uuid
+import traceback
 
 from src.call.url_builders.url_builder import UrlBuilder
 from src.call.url_builders.url_builder import ExceptionRefreshAuth
@@ -28,28 +31,54 @@ async def call_execute(url_builder: UrlBuilder, method: str, param_str: str) -> 
         except ExceptionRefreshAuth as error:
             raise error
         except HTTPStatusError as error:
-            log(LogMessage(
-                time=None,
-                header=f"Ошибка выполнения запроса. {
-                    error.response.status_code}",
-                header_dict=error.args,
-                body={
-                    "url": url_builder.build_url(method, param_str),
-                    "method": method,
-                    "param": param_str,
-                    "response": error.response.json()
-                },
-                level=log_en.ERROR))
+            log(
+                LogMessage(
+                    header=LogHeader(
+                            id = uuid.uuid4(),
+                            title = f"Ошибка выполнения запроса. {error.response.status_code}",
+                            tegs = {
+                                "member": url_builder.get_name(),
+                                "method": method,
+                                "status_code": error.response.status_code,
+                                "error_args":error.args
+                            },
+                            time = None,
+                            level = log_en.ERROR
+                    ),
+                    body = {
+                        "url": url_builder.build_url(method, param_str),
+                        "method": method,
+                        "param": param_str,
+                        "response": error.response.json(),
+                        "member": url_builder.get_name(),
+                        "error_args":error.args,
+                        "traceback": traceback.format_exc()
+                    }
+                )
+            )
             raise error
         except Exception as error:
-            log(LogMessage(
-                time=None,
-                header="Неизвестная ошибка.",
-                header_dict=error.args,
-                body={
-                    "url": url_builder.build_url(method, param_str),
-                    "method": method,
-                    "param": param_str
-                },
-                level=log_en.ERROR))
+            log(
+                LogMessage(
+                    header=LogHeader(
+                            id = uuid.uuid4(),
+                            title = "Неизвестная ошибка.",
+                            tegs = {
+                                "member": url_builder.get_name(),
+                                "method": method,
+                                "error_args":error.args
+                            },
+                            time = None,
+                            level = log_en.ERROR
+                    ),
+                    body = {
+                        "url": url_builder.build_url(method, param_str),
+                        "method": method,
+                        "param": param_str,
+                        "member": url_builder.get_name(),
+                        "error_args":error.args,
+                        "traceback": traceback.format_exc()
+                    }
+                )
+            )
             raise error

@@ -1,4 +1,5 @@
-class EventBind:
-    def __init__(self,event: str, handler: str) -> None:
-        self.event = event
-        self.handler = handler
+from pydantic import BaseModel
+
+class EventBind(BaseModel):
+    event: str
+    handler: str

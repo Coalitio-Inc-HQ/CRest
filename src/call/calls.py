@@ -1,11 +1,10 @@
-from .call_parameters_encoder.сall_parameters_encoder import call_parameters_encoder,call_parameters_encoder_batсh
 from src.settings import settings
 
 from .url_builders.url_builder import UrlBuilder
 
-from httpx import HTTPStatusError
-
-from src.loging.logging_utility import log, LogMessage,log_en, filter_array_to_str, filter_dict_to_str
+from src.loging.logging_utility import log, LogMessage, LogHeader,log_en,filter_array_to_str,filter_dict_to_str
+import uuid
+import traceback
 
 from typing import Any
 
@@ -69,13 +68,23 @@ def error_catcher(name: str):
                 if "error" in result:
                     log(
                         LogMessage(
-                            time=None,
-                            header=f"Ошибка при выполнении декоратора error_catcher, name: {name}.", 
-                            header_dict={"args": filter_array_to_str(args), "kwargs": filter_dict_to_str(kwargs)},
-                            body={"result":result},
-                            level=log_en.ERROR
-                            )
+                            header=LogHeader(
+                                    id = uuid.uuid4(),
+                                    title = f"Ошибка при выполнении декоратора error_catcher, name: {name}.",
+                                    tegs = {
+                                        "args": filter_array_to_str(args), 
+                                        "kwargs": filter_dict_to_str(kwargs)
+                                    },
+                                    time = None,
+                                    level = log_en.ERROR
+                            ),
+                            body = {
+                                "args": filter_array_to_str(args), 
+                                "kwargs": filter_dict_to_str(kwargs),
+                                "result":result
+                            }
                         )
+                    )
                     raise ExceptionCallError(error=result["error"])
 
                 return result
@@ -91,14 +100,27 @@ def error_catcher(name: str):
             except ExceptionRefreshAuth as error:
                 raise error
             except Exception as error:
-                log(LogMessage(
-                        time=None,
-                        header=f"Ошибка при выполнении декоратора error_catcher, name: {name}.", 
-                        header_dict={"args": filter_array_to_str(args), "kwargs": filter_dict_to_str(kwargs)},
-                        body={"error_args":error.args},
-                        level=log_en.ERROR
-                        )
+                log(
+                    LogMessage(
+                        header=LogHeader(
+                                id = uuid.uuid4(),
+                                title = f"Ошибка при выполнении декоратора error_catcher, name: {name}.",
+                                tegs = {
+                                    "args": filter_array_to_str(args), 
+                                    "kwargs": filter_dict_to_str(kwargs),
+                                    "error_args":error.args,
+                                },
+                                time = None,
+                                level = log_en.ERROR
+                        ),
+                        body = {
+                            "args": filter_array_to_str(args), 
+                            "kwargs": filter_dict_to_str(kwargs),
+                            "error_args":error.args,
+                            "traceback": traceback.format_exc()
+                        }
                     )
+                )
                 raise ExceptionCallError(error="undefined")
 
         return inner

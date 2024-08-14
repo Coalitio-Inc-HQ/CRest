@@ -4,7 +4,10 @@ from src.database.database_requests import *
 
 from httpx import AsyncClient, HTTPStatusError
 from typing import Any
-from src.loging.logging_utility import log, LogMessage, log_en
+
+from src.loging.logging_utility import log, LogMessage, LogHeader,log_en,filter_array_to_str,filter_dict_to_str
+import uuid
+import traceback
 
 
 class ExceptionRefreshAuth(Exception):
@@ -33,7 +36,7 @@ class UrlBuilder:
         pass
 
 
-    async def get_name(self) -> str:
+    def get_name(self) -> str:
         pass
 
 
@@ -124,15 +127,23 @@ class UrlBuilder:
                 result = result.json()
 
             if "error" in result:
-                log(LogMessage(
-                    time=None,
-                    header="Ошибка при выполнении refresh_auth.",
-                    header_dict=result["error"],
-                    body={
-                        "paras": params,
-                        "result": result
-                    },
-                    level=log_en.ERROR))
+                log(
+                    LogMessage(
+                        header=LogHeader(
+                                id = uuid.uuid4(),
+                                title = "Ошибка при выполнении refresh_auth.",
+                                tegs = {
+                                    "paras": params
+                                },
+                                time = None,
+                                level = log_en.ERROR
+                        ),
+                        body = {
+                            "paras": params,
+                            "result":result
+                        }
+                    )
+                )
                 raise ExceptionRefreshAuth(error=result["error"])
             
             return result
@@ -140,24 +151,49 @@ class UrlBuilder:
         except ExceptionRefreshAuth as error:
             raise error
         except HTTPStatusError as error:
-            log(LogMessage(
-                time=None,
-                header=f"Ошибка при выполнении refresh_auth. {
-                    error.response.status_code}",
-                header_dict=error.args,
-                body={
-                    "paras": params,
-                    "response": error.response.json()
-                },
-                level=log_en.ERROR))
+            log(
+                LogMessage(
+                    header=LogHeader(
+                            id = uuid.uuid4(),
+                            title = f"Ошибка при выполнении refresh_auth. {error.response.status_code}",
+                            tegs = {
+                                "paras": params,
+                                "status_code": error.response.status_code,
+                                "error_args":error.args
+                            },
+                            time = None,
+                            level = log_en.ERROR
+                    ),
+                    body = {
+                        "paras": params,
+                        "status_code": error.response.status_code,
+                        "response": error.response.json(),
+                        "error_args":error.args,
+                        "traceback": traceback.format_exc()
+                    }
+                )
+            )
             ExceptionRefreshAuth(error=str(error.response.status_code))
         except Exception as error:
-            log(LogMessage(
-                time=None,
-                header="Ошибка при выполнении refresh_auth.",
-                header_dict=error.args,
-                body={"paras": params},
-                level=log_en.ERROR))
+            log(
+                LogMessage(
+                    header=LogHeader(
+                            id = uuid.uuid4(),
+                            title = "Неизвестная ошибка при выполнении refresh_auth.",
+                            tegs = {
+                                "paras": params,
+                                "error_args":error.args
+                            },
+                            time = None,
+                            level = log_en.ERROR
+                    ),
+                    body = {
+                        "paras": params,
+                        "error_args":error.args,
+                        "traceback": traceback.format_exc()
+                    }
+                )
+            )
             raise ExceptionRefreshAuth(error="undefined")
 
 
