@@ -8,7 +8,10 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
 from fastapi.routing import APIRoute
 
-from .loging.logging_utility import log, LogMessage,log_en
+from src.loging.logging_utility import log, LogMessage, LogHeader,log_en
+import uuid
+import traceback
+
 from .settings import settings
 
 from src.call.сall_parameters_decoder.сall_parameters_decoder import get_body
@@ -17,7 +20,7 @@ from .database.session_database import get_session
 from .database.database_requests import *
 
 from src.call.calls import CallAPIBitrix
-from call.url_builders.base_url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder
+from src.call.url_builders.base_url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder
 
 from .event_bind import EventBind
 from .placement_bind import PlacementBind
@@ -25,9 +28,9 @@ from .placement_bind import PlacementBind
 from src.body_preparer import BodyPreparer
 
 from src.call.url_builders.url_builder import UrlBuilder
-from call.url_builders.base_url_builders.web_hook_url_builder import WebHookUrlBuilder, get_web_hook_url_builder_depends, get_web_hook_url_builder_init_depends
-from call.url_builders.base_url_builders.local_application_url_builder import LocalApplicationUrlBuilder, get_local_application_url_builder_depends, get_local_application_url_builder_init_depends
-from call.url_builders.base_url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder, get_circulation_application_url_builder_depends, get_circulation_application_url_builder_init_depends
+from src.call.url_builders.base_url_builders.web_hook_url_builder import WebHookUrlBuilder, get_web_hook_url_builder_depends, get_web_hook_url_builder_init_depends
+from src.call.url_builders.base_url_builders.local_application_url_builder import LocalApplicationUrlBuilder, get_local_application_url_builder_depends, get_local_application_url_builder_init_depends
+from src.call.url_builders.base_url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder, get_circulation_application_url_builder_depends, get_circulation_application_url_builder_init_depends
 
 from src.call.url_builders.oauth2_url_builder import OAuth2UrlBuilder, get_oauth_2_url_builder_depends
 
@@ -89,14 +92,36 @@ class BitrixAPI:
         self.call_api_bitrix = call_api_bitrix
 
         def lifespan_decorator(app: FastAPI):
-            log(LogMessage(time=None, header="Сервер запущен.", header_dict=None, body=None, level=log_en.INFO))
+            log(
+                LogMessage(
+                    header=LogHeader(
+                            id = uuid.uuid4(),
+                            title = "Сервер запущен.",
+                            tegs = {},
+                            time = None,
+                            level = log_en.INFO
+                    ),
+                    body = {}
+                )
+            )
             if lifespan:
                 gen = lifespan(app)
                 for res in gen:
                     yield res
             else:
                 yield
-            log(LogMessage(time=None, header="Сервер остановлен.", header_dict=None, body=None, level=log_en.INFO))
+            log(
+                LogMessage(
+                    header=LogHeader(
+                            id = uuid.uuid4(),
+                            title = "Сервер остановлен.",
+                            tegs = {},
+                            time = None,
+                            level = log_en.INFO
+                    ),
+                    body = {}
+                )
+            )
 
         self.app = FastAPI(lifespan=lifespan_decorator)
 
@@ -119,12 +144,29 @@ class BitrixAPI:
 
         @self.app.exception_handler(Exception)
         async def exception_handler(request: Request, error: Exception):
-            log(LogMessage(time=None, header="Неизвестная ошибка.",
-                           header_dict=error.args, body={
-                               "url": str(request.url), "query_params": request.query_params._list,
-                               "path_params": request.path_params,
-                           },
-                           level=log_en.ERROR))
+            log(
+                LogMessage(
+                    header=LogHeader(
+                            id = uuid.uuid4(),
+                            title = "Неизвестная ошибка.",
+                            tegs = {
+                                "url":str(request.url),
+                                "error_args": error.args
+                            },
+                            time = None,
+                            level = log_en.ERROR
+                    ),
+                    body = {
+                        "url":str(request.url),
+                        "query_params":request.query_params._list,
+                        "path_params":request.path_params,
+                        "body": request.state.body,
+                        "error_args": error.args,
+                        "traceback": traceback.format_exc()
+                    }
+                )
+            )
+
 
         match mode:
             case BitrixAPIMode.WebHook:
@@ -138,6 +180,9 @@ class BitrixAPI:
                 self.url_bulder_init_depends = get_circulation_application_url_builder_init_depends(get_session)
 
         async def url_bulder_init_depends_(url_builder: UrlBuilder = Depends(self.url_bulder_init_depends)) -> UrlBuilder:
+            """
+            TODO Наверное надо добавить вызов ошибки при некооректной установке.
+            """
             try:
                 if self.event_binds:
                     event_arr = []
@@ -151,8 +196,30 @@ class BitrixAPI:
                                 }
                             }
                         )
-                    await self.call_api_bitrix.call_batch(url_builder, event_arr)
-                    log(LogMessage(time=None, header="Events bound successfully.", header_dict=None, body={"events": [event.event for event in self.event_binds]}, level=log_en.INFO))
+                    result = await self.call_api_bitrix.call_batch(url_builder, event_arr)
+
+                    if "result_error" in result["result"]:
+                        if type(result["result"]["result_error"]) == dict:
+                            if len(result["result"]["result_error"]) != 0:
+                                log(
+                                    LogMessage(
+                                        header=LogHeader(
+                                                id = uuid.uuid4(),
+                                                title = "Ошибка установки обработчиков событий.",
+                                                tegs = {
+                                                    "member": url_builder.get_name()
+                                                },
+                                                time = None,
+                                                level = log_en.ERROR
+                                        ),
+                                        body = {
+                                            "member": url_builder.get_name(),
+                                            "event_binds": self.event_binds,
+                                            "result": result
+                                        }
+                                    )
+                                )
+        
                         
                 if self.placement_binds:
                     placement_arr = []
@@ -167,12 +234,54 @@ class BitrixAPI:
                                 }
                             }
                         )
-                    await self.call_api_bitrix.call_batch(url_builder, placement_arr)
-                    log(LogMessage(time=None, header="Placements bound successfully.", header_dict=None, body={"placements": [placement.placement for placement in self.placement_binds]}, level=log_en.INFO))
-            
-            except Exception as e:
-                log(LogMessage(time=None, header="Error during URL builder.", header_dict=str(e), body=None, level=log_en.ERROR))
-                raise
+                    result = await self.call_api_bitrix.call_batch(url_builder, placement_arr)
+                    
+                    if "result_error" in result["result"]:
+                        if type(result["result"]["result_error"]) == dict:
+                            if len(result["result"]["result_error"]) != 0:
+                                log(
+                                    LogMessage(
+                                        header=LogHeader(
+                                                id = uuid.uuid4(),
+                                                title = "Ошибка установки мест встраивания.",
+                                                tegs = {
+                                                    "member": url_builder.get_name()
+                                                },
+                                                time = None,
+                                                level = log_en.ERROR
+                                        ),
+                                        body = {
+                                            "member": url_builder.get_name(),
+                                            "placement_binds": self.placement_binds,
+                                            "result": result
+                                        }
+                                    )
+                                )
+
+                    
+            except Exception as error:
+                log(
+                    LogMessage(
+                        header=LogHeader(
+                                id = uuid.uuid4(),
+                                title = "Ошибка при выполнении url_bulder_init_depends_.",
+                                tegs = {
+                                    "member": url_builder.get_name(),
+                                    "error_args": error.args
+                                },
+                                time = None,
+                                level = log_en.ERROR
+                        ),
+                        body = {
+                            "member": url_builder.get_name(),
+                            "event_binds": self.event_binds,
+                            "placement_binds": self.placement_binds,
+                            "error_args": error.args,
+                            "traceback": traceback.format_exc()
+                        }
+                    )
+                )
+                raise error
 
         
         self.url_bulder_init_depends = url_bulder_init_depends_
@@ -297,8 +406,4 @@ class BitrixAPI:
             callbacks=callbacks,
             openapi_extra=openapi_extra,
             generate_unique_id_function=generate_unique_id_function,
-        )        
-    
-
-
-
+        )
