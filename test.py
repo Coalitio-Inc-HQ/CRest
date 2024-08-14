@@ -4,7 +4,7 @@ import asyncio
 from src.call.calls import CallAPIBitrix
 from src.call.call_director import CallDirectorBarrelStrategy
 
-from src.call.url_builders.web_hook_url_builder import WebHookUrlBuilder
+from call.url_builders.base_url_builders.web_hook_url_builder import WebHookUrlBuilder
 
 from src.database.database_requests import *
 
@@ -12,7 +12,7 @@ from sqlalchemy import text
 
 async def run():
 
-    web_hook_url_builder = WebHookUrlBuilder()
+    web_hook_url_builder = WebHookUrlBuilder("web_hook_settings.json")
 
     bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
     # for x in range(2600):

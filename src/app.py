@@ -17,7 +17,7 @@ from .database.session_database import get_session
 from .database.database_requests import *
 
 from src.call.calls import CallAPIBitrix
-from src.call.url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder
+from call.url_builders.base_url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder
 
 from .event_bind import EventBind
 from .placement_bind import PlacementBind
@@ -25,9 +25,9 @@ from .placement_bind import PlacementBind
 from src.body_preparer import BodyPreparer
 
 from src.call.url_builders.url_builder import UrlBuilder
-from src.call.url_builders.web_hook_url_builder import WebHookUrlBuilder, get_web_hook_url_builder_depends, get_web_hook_url_builder_init_depends
-from src.call.url_builders.local_application_url_builder import LocalApplicationUrlBuilder, get_local_application_url_builder_depends, get_local_application_url_builder_init_depends
-from src.call.url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder, get_circulation_application_url_builder_depends, get_circulation_application_url_builder_init_depends
+from call.url_builders.base_url_builders.web_hook_url_builder import WebHookUrlBuilder, get_web_hook_url_builder_depends, get_web_hook_url_builder_init_depends
+from call.url_builders.base_url_builders.local_application_url_builder import LocalApplicationUrlBuilder, get_local_application_url_builder_depends, get_local_application_url_builder_init_depends
+from call.url_builders.base_url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder, get_circulation_application_url_builder_depends, get_circulation_application_url_builder_init_depends
 
 from src.call.url_builders.oauth2_url_builder import OAuth2UrlBuilder, get_oauth_2_url_builder_depends
 
@@ -128,8 +128,8 @@ class BitrixAPI:
 
         match mode:
             case BitrixAPIMode.WebHook:
-                self.url_bulder_depends = get_web_hook_url_builder_depends()
-                self.url_bulder_init_depends = get_web_hook_url_builder_init_depends()
+                self.url_bulder_depends = get_web_hook_url_builder_depends("web_hook_settings.json")
+                self.url_bulder_init_depends = get_web_hook_url_builder_init_depends("web_hook_settings.json")
             case BitrixAPIMode.LocalApplication:
                 self.url_bulder_depends = get_local_application_url_builder_depends("conf.json")
                 self.url_bulder_init_depends = get_local_application_url_builder_init_depends("conf.json")

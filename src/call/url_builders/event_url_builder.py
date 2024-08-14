@@ -37,6 +37,8 @@ def get_event_url_builder_depends(body: dict | None = Depends(decode_body_reques
                 member_id = body["auth"]["member_id"],
                 user_id=body["auth"]["user_id"],
                 refresh_token = None,
+
+                settings= None
             )
     
     return EventUrlBuilder(auth)

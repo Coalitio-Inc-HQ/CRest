@@ -23,3 +23,5 @@ class AuthORM(Base):
     member_id: Mapped[str | None] = mapped_column(primary_key=True)
     user_id: Mapped[int | None]
     refresh_token: Mapped[str]
+
+    settings: Mapped[dict | None] = mapped_column(JSON, nullable=True)

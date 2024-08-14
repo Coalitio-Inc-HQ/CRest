@@ -22,7 +22,7 @@ from src.call.url_builders.oauth2_url_builder import get_oauth_2_url_builder_dep
 
 
 app = BitrixAPI(
-    BitrixAPIMode.CirculationApplication,
+    BitrixAPIMode.WebHook,
     CallAPIBitrix(CallDirectorBarrelStrategy()),
     )
 

@@ -37,6 +37,8 @@ class OAuth2UrlBuilder(UrlBuilder):
                             member_id = new_auth["member_id"],
                             user_id=int(new_auth["user_id"]),
                             refresh_token = new_auth["refresh_token"],
+
+                            settings=None
         )
 
 
@@ -67,7 +69,7 @@ class OAuth2UrlBuilder(UrlBuilder):
 
 
     async def update_domain(self, domain: str) -> None:
-        self.auth.client_endpoint = domain
+        self.auth.domain = domain
 
     def get_name(self) -> str:
         return self.auth.member_id
