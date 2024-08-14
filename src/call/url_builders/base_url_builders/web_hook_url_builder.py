@@ -1,9 +1,10 @@
-from .url_builder import UrlBuilder
+from ..url_builder import UrlBuilder
+from .base_url_builder import BaseUrlBuilder
 from src.settings import settings
 
 import json
 
-class WebHookUrlBuilder(UrlBuilder):
+class WebHookUrlBuilder(BaseUrlBuilder):
     def __init__(self, filename: str):
         super().__init__(False, False)
         self.filename=filename
@@ -21,6 +22,9 @@ class WebHookUrlBuilder(UrlBuilder):
     
     def get_name(self) -> str:
         return settings.C_REST_WEB_HOOK_URL
+
+    def get_settings(self) -> dict:
+        return self.settings
 
 
 def get_web_hook_url_builder_depends(filename: str):
