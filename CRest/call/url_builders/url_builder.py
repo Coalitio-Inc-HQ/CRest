@@ -1,11 +1,11 @@
-from src.database.schemes import AuthDTO
-from src.settings import settings
-from src.database.database_requests import *
+from CRest.database.schemes import AuthDTO
+from CRest.settings import settings
+from CRest.database.database_requests import *
 
 from httpx import AsyncClient, HTTPStatusError
 from typing import Any
 
-from src.loging.logging_utility import log, LogMessage, LogHeader,log_en,filter_array_to_str,filter_dict_to_str
+from CRest.loging.logging_utility import log, LogMessage, LogHeader,log_en,filter_array_to_str,filter_dict_to_str
 import uuid
 import traceback
 

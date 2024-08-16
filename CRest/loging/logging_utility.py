@@ -1,5 +1,5 @@
 import logging
-from src.loging.logger import json_logger
+from CRest.loging.logger import json_logger
 from .schemes import LogMessage, log_en, LogHeader
 import datetime
 

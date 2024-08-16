@@ -1,6 +1,6 @@
 import logging
 from logging.handlers import RotatingFileHandler
-from src.settings import settings
+from CRest.settings import settings
 
 def setup_logger_json(name, filename, level=logging.DEBUG):
     formatter = logging.Formatter('%(message)s')

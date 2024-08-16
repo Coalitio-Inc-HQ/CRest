@@ -1,12 +1,12 @@
-from src.database.session_database import engine, session_factory
+from CRest.database.session_database import engine, session_factory
 import asyncio
 
-from src.call.calls import CallAPIBitrix
-from src.call.call_director import CallDirectorBarrelStrategy
+from CRest.call.calls import CallAPIBitrix
+from CRest.call.call_director import CallDirectorBarrelStrategy
 
-from call.url_builders.base_url_builders.web_hook_url_builder import WebHookUrlBuilder
+from CRest.call.url_builders.base_url_builders.web_hook_url_builder import WebHookUrlBuilder
 
-from src.database.database_requests import *
+from CRest.database.database_requests import *
 
 from sqlalchemy import text
 

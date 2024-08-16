@@ -1,10 +1,10 @@
-from src.settings import settings
-from src.database.session_database import session_factory
+from CRest.settings import settings
+from CRest.database.session_database import session_factory
 from sqlalchemy import text
 
 import asyncio
 
-from src.loging.logging_utility import log, LogMessage, LogHeader,log_en
+from CRest.loging.logging_utility import log, LogMessage, LogHeader,log_en
 import uuid
 import traceback
 

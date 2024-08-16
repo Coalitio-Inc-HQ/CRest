@@ -8,31 +8,31 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
 from fastapi.routing import APIRoute
 
-from src.loging.logging_utility import log, LogMessage, LogHeader,log_en
+from CRest.loging.logging_utility import log, LogMessage, LogHeader,log_en
 import uuid
 import traceback
 
 from .settings import settings
 
-from src.call.сall_parameters_decoder.сall_parameters_decoder import get_body
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
 from .database.session_database import get_session
 from .database.database_requests import *
 
-from src.call.calls import CallAPIBitrix
-from src.call.url_builders.base_url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder
+from CRest.call.calls import CallAPIBitrix
+from CRest.call.url_builders.base_url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder
 
 from .event_bind import EventBind
 from .placement_bind import PlacementBind
 
-from src.body_preparer import BodyPreparer
+from CRest.body_preparer import BodyPreparer
 
-from src.call.url_builders.url_builder import UrlBuilder
-from src.call.url_builders.base_url_builders.web_hook_url_builder import WebHookUrlBuilder, get_web_hook_url_builder_depends, get_web_hook_url_builder_init_depends
-from src.call.url_builders.base_url_builders.local_application_url_builder import LocalApplicationUrlBuilder, get_local_application_url_builder_depends, get_local_application_url_builder_init_depends
-from src.call.url_builders.base_url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder, get_circulation_application_url_builder_depends, get_circulation_application_url_builder_init_depends
+from CRest.call.url_builders.url_builder import UrlBuilder
+from CRest.call.url_builders.base_url_builders.web_hook_url_builder import WebHookUrlBuilder, get_web_hook_url_builder_depends, get_web_hook_url_builder_init_depends
+from CRest.call.url_builders.base_url_builders.local_application_url_builder import LocalApplicationUrlBuilder, get_local_application_url_builder_depends, get_local_application_url_builder_init_depends
+from CRest.call.url_builders.base_url_builders.circulation_application_url_builder import CirculationApplicationUrlBuilder, get_circulation_application_url_builder_depends, get_circulation_application_url_builder_init_depends
 
-from src.call.url_builders.oauth2_url_builder import OAuth2UrlBuilder, get_oauth_2_url_builder_depends
+from CRest.call.url_builders.oauth2_url_builder import OAuth2UrlBuilder, get_oauth_2_url_builder_depends
 
 
 import enum

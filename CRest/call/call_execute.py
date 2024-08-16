@@ -1,12 +1,12 @@
 from httpx import AsyncClient, HTTPStatusError
 from typing import Any
 
-from src.loging.logging_utility import log, LogMessage, LogHeader,log_en,filter_array_to_str,filter_dict_to_str
+from CRest.loging.logging_utility import log, LogMessage, LogHeader,log_en,filter_array_to_str,filter_dict_to_str
 import uuid
 import traceback
 
-from src.call.url_builders.url_builder import UrlBuilder
-from src.call.url_builders.url_builder import ExceptionRefreshAuth
+from CRest.call.url_builders.url_builder import UrlBuilder
+from CRest.call.url_builders.url_builder import ExceptionRefreshAuth
 
 
 async def call_execute(url_builder: UrlBuilder, method: str, param_str: str) -> Any:

@@ -1,11 +1,11 @@
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from src.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request 
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request 
 
-from src.settings import settings
+from CRest.settings import settings
 
-from src.auth.auth_schemes import *
+from CRest.auth.auth_schemes import *
 
 class BodyPreparer(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):        

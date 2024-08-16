@@ -1,6 +1,6 @@
 from ..url_builder import UrlBuilder
 from .base_url_builder import BaseUrlBuilder
-from src.settings import settings
+from CRest.settings import settings
 
 import json
 

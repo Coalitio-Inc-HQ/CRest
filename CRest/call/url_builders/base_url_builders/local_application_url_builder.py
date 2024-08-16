@@ -1,18 +1,21 @@
-from src.database.schemes import AuthDTO
-from src.settings import settings
-from src.database.database_requests import *
+from CRest.database.schemes import AuthDTO
+from CRest.settings import settings
+from CRest.database.database_requests import *
 from ..url_builder import UrlBuilder
 from .base_url_builder import BaseUrlBuilder
 
-
 from fastapi import Depends, Request
-from src.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
-class CirculationApplicationUrlBuilder(BaseUrlBuilder):
-    def __init__(self, auth: AuthDTO, session: AsyncSession):
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
+
+
+class LocalApplicationUrlBuilder(BaseUrlBuilder):
+    def __init__(self, filename: str):
         super().__init__(True, True)
-        self.auth = auth
-        self.session = session
+        self.filename=filename
+
+        with open(filename) as json_data:
+            self.auth = AuthDTO.model_validate_json(json_data.read())
     
 
     def build_url (self, method:str, params: str) -> str:
@@ -28,18 +31,6 @@ class CirculationApplicationUrlBuilder(BaseUrlBuilder):
             "refresh_token": self.auth.refresh_token
             }
         )
-
-        await update_auth(self.session, 
-                        new_auth["access_token"],
-                        int (new_auth["expires"]),
-                        int(new_auth["expires_in"]),
-                        new_auth["scope"],
-                        new_auth["client_endpoint"][8:-6],
-                        new_auth["status"],
-                        new_auth["member_id"],
-                        int(new_auth["user_id"]),
-                        new_auth["refresh_token"],
-                        )
         
         self.auth.access_token = new_auth["access_token"]
         self.auth.expires = int(new_auth["expires"])
@@ -50,39 +41,39 @@ class CirculationApplicationUrlBuilder(BaseUrlBuilder):
         self.auth.member_id = new_auth["member_id"]
         self.auth.user_id = int(new_auth["user_id"])
         self.auth.refresh_token = new_auth["refresh_token"]
+    
+        with open(self.filename, 'w', encoding='utf-8') as f:
+            f.write(self.auth.model_dump_json())
+
 
 
     async def update_domain(self, domain: str) -> None:
-        await update_auth_domain(self.session, self.auth.member_id, domain)
         self.auth.domain = domain
+
+        with open(self.filename, 'w', encoding='utf-8') as f:
+            f.write(self.auth.model_dump_json())
 
     def get_name(self) -> str:
         return self.auth.member_id
     
     async def set_settings(self, settings: dict) -> None:
-        await update_auth_domain(self.session, settings)
         self.auth.settings = settings
+
+        with open(self.filename, 'w', encoding='utf-8') as f:
+            f.write(self.auth.model_dump_json())
 
     def get_settings(self) -> dict:
         return self.auth.settings
 
 
-def get_circulation_application_url_builder_depends(get_session):
-    async def get_url_builder(session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)) -> UrlBuilder:
-        member_id = None
-        if "member_id" in body:
-            member_id=body["member_id"]
-        elif "auth" in body:
-            if "member_id" in body["auth"]:
-                member_id = body["auth"]["member_id"]
-
-        auth = await get_auth_by_member_id(session=session, member_id=member_id)
-        return CirculationApplicationUrlBuilder(auth, session)
+def get_local_application_url_builder_depends(filename: str):
+    def get_url_builder() -> UrlBuilder:
+        return LocalApplicationUrlBuilder(filename)
     return get_url_builder
 
 
-def get_circulation_application_url_builder_init_depends(get_session):
-    async def get_init_url_builder(request: Request , body: dict | None = Depends(get_body), session: AsyncSession = Depends(get_session)) -> UrlBuilder:
+def get_local_application_url_builder_init_depends(filename: str):
+    def get_init_url_builder(request: Request , body: dict | None = Depends(get_body)) -> UrlBuilder:
         
         params = request.query_params._dict
 
@@ -103,8 +94,8 @@ def get_circulation_application_url_builder_init_depends(get_session):
                 settings={}
             )
 
-        await insert_auth(session, auth)
-        return CirculationApplicationUrlBuilder(auth,session)
-            
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(auth.model_dump_json())
+        return LocalApplicationUrlBuilder(filename)
     
     return get_init_url_builder

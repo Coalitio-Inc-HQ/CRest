@@ -1,6 +1,6 @@
-from src.database.schemes import AuthDTO
-from src.settings import settings
-from src.database.database_requests import *
+from CRest.database.schemes import AuthDTO
+from CRest.settings import settings
+from CRest.database.database_requests import *
 from .url_builder import UrlBuilder
 
 from fastapi import Request

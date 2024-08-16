@@ -1,5 +1,5 @@
 from urllib.parse import quote
-from src.settings import settings
+from CRest.settings import settings
 
 def call_parameters_encoder(params: dict) -> str:
     """

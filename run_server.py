@@ -1,24 +1,24 @@
 import uvicorn
-from src.app import BitrixAPI, BitrixAPIMode
-from src.settings import settings
-from src.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
+from CRest.app import BitrixAPI, BitrixAPIMode
+from CRest.settings import settings
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
 from fastapi import Depends
 
 from fastapi.responses import HTMLResponse
 
-from src.call.url_builders.frame_url_builder import FrameUrlBuilder, get_frame_url_builder_depends
-from src.call.url_builders.event_url_builder import EventUrlBuilder, get_event_url_builder_depends
+from CRest.call.url_builders.frame_url_builder import FrameUrlBuilder, get_frame_url_builder_depends
+from CRest.call.url_builders.event_url_builder import EventUrlBuilder, get_event_url_builder_depends
 
 
-from src.call.сall_parameters_decoder.сall_parameters_decoder import get_body
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
 
-from src.call.calls import CallAPIBitrix
+from CRest.call.calls import CallAPIBitrix
 
-from src.call.call_director import CallDirectorBarrelStrategy
-from src.call.url_builders.oauth2_url_builder import get_oauth_2_url_builder_depends
+from CRest.call.call_director import CallDirectorBarrelStrategy
+from CRest.call.url_builders.oauth2_url_builder import get_oauth_2_url_builder_depends
 
-# import src.check_server # не убирать
+# import CRest.check_server # не убирать
 
 
 app = BitrixAPI(
@@ -45,7 +45,7 @@ async def install_post(url_builder=Depends(app.url_bulder_init_depends), body: d
 
         return """
         <head>
-            <script src="//api.bitrix24.com/api/v1/"></script>
+            <script CRest="//api.bitrix24.com/api/v1/"></script>
             <script>
                 BX24.init(function(){
                     BX24.installFinish();

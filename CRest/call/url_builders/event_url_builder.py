@@ -1,10 +1,10 @@
-from src.database.schemes import AuthDTO
-from src.settings import settings
-from src.database.database_requests import *
+from CRest.database.schemes import AuthDTO
+from CRest.settings import settings
+from CRest.database.database_requests import *
 from .url_builder import UrlBuilder
 
 from fastapi import Depends
-from src.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
 
 class EventUrlBuilder(UrlBuilder):
     def __init__(self, auth: AuthDTO):

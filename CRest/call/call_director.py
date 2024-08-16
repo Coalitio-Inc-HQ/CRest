@@ -1,7 +1,7 @@
 from typing import Any
-from src.call.url_builders.url_builder import UrlBuilder
+from CRest.call.url_builders.url_builder import UrlBuilder
 import datetime
-from src.settings import settings
+from CRest.settings import settings
 import time
 from .call_parameters_encoder.сall_parameters_encoder import call_parameters_encoder,call_parameters_encoder_batсh, call_parameters_encoder_batсh_by_index
 
