@@ -14,7 +14,7 @@ import traceback
 
 from .settings import settings
 
-from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
 
 from .database.session_database import get_session
 from .database.database_requests import *
@@ -132,7 +132,7 @@ class BitrixAPI:
         self.post = self.app.post
 
         
-        self.app.add_middleware(BodyPreparer)
+        # self.app.add_middleware(BodyPreparer)
 
         self.app.add_middleware(
             CORSMiddleware,
@@ -160,7 +160,7 @@ class BitrixAPI:
                         "url":str(request.url),
                         "query_params":request.query_params._list,
                         "path_params":request.path_params,
-                        "body": request.state.body,
+                        "body": request.state.body if "body" in request.state else None,
                         "error_args": error.args,
                         "traceback": traceback.format_exc()
                     }

@@ -30,15 +30,19 @@ def call_parameters_decoder(string: str) -> dict:
 
 
 async def decode_body_request(request: Request) -> dict | None:
-    string = str(await request.body())[2:-1]
-    if string != "":
-        return call_parameters_decoder(string)
-    else:
-        return None
-    
+    # Извлечение тела запроса
+    content_type = request.headers.get("content-type")
+    body = None
+    if content_type == "application/json":
+        body = await request.json()
+    elif content_type == "application/x-www-form-urlencoded":
+        body = await decode_body_request(request)
+    request.state.body = body
 
-def get_body(request: Request) -> dict | None:
-    if request.state.body:
-        return request.state.body
-    else:
-        return None
+    return body
+
+# def get_body(request: Request) -> dict | None:
+#     if request.state.body:
+#         return request.state.body
+#     else:
+#         return None

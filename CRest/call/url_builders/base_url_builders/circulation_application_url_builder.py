@@ -6,7 +6,7 @@ from .base_url_builder import BaseUrlBuilder
 
 
 from fastapi import Depends, Request
-from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
 
 class CirculationApplicationUrlBuilder(BaseUrlBuilder):
     def __init__(self, auth: AuthDTO, session: AsyncSession):
@@ -68,7 +68,7 @@ class CirculationApplicationUrlBuilder(BaseUrlBuilder):
 
 
 def get_circulation_application_url_builder_depends(get_session):
-    async def get_url_builder(session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)) -> UrlBuilder:
+    async def get_url_builder(session: AsyncSession = Depends(get_session), body: dict | None = Depends(decode_body_request)) -> UrlBuilder:
         member_id = None
         if "member_id" in body:
             member_id=body["member_id"]
@@ -82,7 +82,7 @@ def get_circulation_application_url_builder_depends(get_session):
 
 
 def get_circulation_application_url_builder_init_depends(get_session):
-    async def get_init_url_builder(request: Request , body: dict | None = Depends(get_body), session: AsyncSession = Depends(get_session)) -> UrlBuilder:
+    async def get_init_url_builder(request: Request , body: dict | None = Depends(decode_body_request), session: AsyncSession = Depends(get_session)) -> UrlBuilder:
         
         params = request.query_params._dict
 

@@ -10,7 +10,7 @@ from CRest.call.url_builders.frame_url_builder import FrameUrlBuilder, get_frame
 from CRest.call.url_builders.event_url_builder import EventUrlBuilder, get_event_url_builder_depends
 
 
-from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
 
 
 from CRest.call.calls import CallAPIBitrix
@@ -38,7 +38,7 @@ async def index_head():
 
 
 @app.post("/install", response_class=HTMLResponse)
-async def install_post(url_builder=Depends(app.url_bulder_init_depends), body: dict | None = Depends(get_body)):
+async def install_post(url_builder=Depends(app.url_bulder_init_depends), body: dict | None = Depends(decode_body_request)):
     url_builder = url_builder
 
     if (body["PLACEMENT"] == "DEFAULT"):
