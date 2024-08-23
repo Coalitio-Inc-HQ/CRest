@@ -10,11 +10,31 @@ from CRest.database.database_requests import *
 
 from sqlalchemy import text
 
+import base64
+
 async def run():
 
     web_hook_url_builder = WebHookUrlBuilder("web_hook_settings.json")
 
     bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
+
+    with open("C:\\Users\\vl\\Desktop\\Документ Microsoft Word.docx", "rb") as file:
+
+        res = await bitrix_api.call_method(web_hook_url_builder, "documentgenerator.template.add",
+                                        {
+                                            "FIELDS":{
+                                                "NAME":f"Rest Template",
+                                                "file":base64.b64encode(file.read()),
+                                                "numeratorId": 36,
+                                                "providers":[
+                                                    'Bitrix\\DocumentGenerator\\DataProvider\\Rest'
+                                                ]
+                                            }
+                                        }
+                                        )
+        print(res)
+
+
     # for x in range(2600):
     #   res = await call_method(web_hook_url_builder, "crm.contact.add",
     #                                   {
@@ -26,26 +46,26 @@ async def run():
     #                                 )
     #   print(res)
     # Тест operating
-    while True:  
-        arr = []
-        for i in range(20):  
-            arr.append(
-                {
-                    "method": "crm.contact.add",
-                    "params":{
-                        "FIELDS":{
-                            "NAME":f"Иванко{i}",
-                            "LAST_NAME":f"Петрович{i}"
-                        }
-                    }
-                }
-            )
+    # while True:  
+    #     arr = []
+    #     for i in range(20):  
+    #         arr.append(
+    #             {
+    #                 "method": "crm.contact.add",
+    #                 "params":{
+    #                     "FIELDS":{
+    #                         "NAME":f"Иванко{i}",
+    #                         "LAST_NAME":f"Петрович{i}"
+    #                     }
+    #                 }
+    #             }
+    #         )
 
-        try:
-            res1 = await bitrix_api.call_batch(web_hook_url_builder, arr)
-            print(res1)
-        except Exception as e:
-            print(f"Exception occurred: {e}")
+    #     try:
+    #         res1 = await bitrix_api.call_batch(web_hook_url_builder, arr)
+    #         print(res1)
+    #     except Exception as e:
+    #         print(f"Exception occurred: {e}")
 
 
 

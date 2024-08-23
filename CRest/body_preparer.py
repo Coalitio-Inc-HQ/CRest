@@ -5,7 +5,7 @@ from CRest.call.сall_parameters_decoder.сall_parameters_decoder import decode_
 
 from CRest.settings import settings
 
-from CRest.auth.auth_schemes import *
+# from CRest.auth.auth_schemes import *
 
 class BodyPreparer(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):        
