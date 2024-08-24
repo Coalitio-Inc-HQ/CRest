@@ -6,7 +6,7 @@ from .base_url_builder import BaseUrlBuilder
 
 from fastapi import Depends, Request
 
-from CRest.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
 
 class LocalApplicationUrlBuilder(BaseUrlBuilder):
@@ -73,7 +73,7 @@ def get_local_application_url_builder_depends(filename: str):
 
 
 def get_local_application_url_builder_init_depends(filename: str):
-    def get_init_url_builder(request: Request , body: dict | None = Depends(decode_body_request)) -> UrlBuilder:
+    def get_init_url_builder(request: Request , body: dict | None = Depends(get_body)) -> UrlBuilder:
         
         params = request.query_params._dict
 

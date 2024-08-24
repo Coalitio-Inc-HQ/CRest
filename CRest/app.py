@@ -7,6 +7,8 @@ from fastapi.utils import generate_unique_id
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
 from fastapi.routing import APIRoute
+from starlette.routing import (BaseRoute,)
+from fastapi import params
 
 from CRest.loging.logging_utility import log, LogMessage, LogHeader,log_en
 import uuid
@@ -14,7 +16,7 @@ import traceback
 
 from .settings import settings
 
-from CRest.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
 from .database.session_database import get_session
 from .database.database_requests import *
@@ -25,7 +27,6 @@ from CRest.call.url_builders.base_url_builders.circulation_application_url_build
 from .event_bind import EventBind
 from .placement_bind import PlacementBind
 
-from CRest.body_preparer import BodyPreparer
 
 from CRest.call.url_builders.url_builder import UrlBuilder
 from CRest.call.url_builders.base_url_builders.web_hook_url_builder import WebHookUrlBuilder, get_web_hook_url_builder_depends, get_web_hook_url_builder_init_depends
@@ -34,6 +35,7 @@ from CRest.call.url_builders.base_url_builders.circulation_application_url_build
 
 from CRest.call.url_builders.oauth2_url_builder import OAuth2UrlBuilder, get_oauth_2_url_builder_depends
 
+from CRest.router import BitrixRouter
 
 import enum
 from enum import Enum
@@ -50,7 +52,7 @@ from typing import (
     Union,
 )
 
-
+from fastapi.datastructures import Default
 
 AppType = TypeVar("AppType", bound="FastAPI")
 
@@ -132,8 +134,6 @@ class BitrixAPI:
         self.post = self.app.post
 
         
-        # self.app.add_middleware(BodyPreparer)
-
         self.app.add_middleware(
             CORSMiddleware,
             allow_origins=settings.BACKEND_CORS_ORIGINS,
@@ -160,7 +160,7 @@ class BitrixAPI:
                         "url":str(request.url),
                         "query_params":request.query_params._list,
                         "path_params":request.path_params,
-                        "body": request.state.body if "body" in request.state else None,
+                        "body": request.state.body if hasattr(request.state, "body") else None,
                         "error_args": error.args,
                         "traceback": traceback.format_exc()
                     }
@@ -406,4 +406,44 @@ class BitrixAPI:
             callbacks=callbacks,
             openapi_extra=openapi_extra,
             generate_unique_id_function=generate_unique_id_function,
+        )
+    
+    def include_router(
+        self,
+        router: "BitrixRouter", 
+        *args,
+        prefix: str = "",
+        tags: Optional[List[Union[str, Enum]]] = None,
+        dependencies: Optional[Sequence[params.Depends]] = None,
+        default_response_class: Type[Response] = Default(JSONResponse),
+        responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+        callbacks: Optional[List[BaseRoute]] = None,
+        deprecated: Optional[bool] = None,
+        include_in_schema: bool = True,
+        generate_unique_id_function: Callable[[APIRoute], str] = Default(generate_unique_id),
+    ) -> None:
+
+        for event in router.event_binds:
+            new_event = EventBind(event=event.event, handler=prefix+event.handler)
+            self.event_binds.append(new_event)
+
+        for placement in router.placement_binds:
+            new_placement = PlacementBind(title=placement.title, placement=placement.placement, handler=prefix+placement.handler)
+            self.placement_binds.append(new_placement)
+
+        router.url_bulder_depends = self.url_bulder_depends
+        router.url_bulder_init_depends = self.url_bulder_init_depends
+
+        self.app.include_router(
+            router.router, 
+            *args,
+            prefix = prefix,
+            tags = tags,
+            dependencies = dependencies,
+            default_response_class = default_response_class,
+            responses = responses,
+            callbacks = callbacks,
+            deprecated = deprecated,
+            include_in_schema = include_in_schema,
+            generate_unique_id_function = generate_unique_id_function,
         )

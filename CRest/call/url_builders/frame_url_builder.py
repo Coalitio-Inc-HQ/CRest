@@ -4,7 +4,7 @@ from CRest.database.database_requests import *
 from .url_builder import UrlBuilder
 
 from fastapi import Depends, Request
-from CRest.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
 
 class FrameUrlBuilder(UrlBuilder):
@@ -46,7 +46,7 @@ class FrameUrlBuilder(UrlBuilder):
         return self.auth.member_id
 
 
-def get_frame_url_builder_depends(request: Request ,body: dict | None = Depends(decode_body_request)) -> UrlBuilder:
+def get_frame_url_builder_depends(request: Request ,body: dict | None = Depends(get_body)) -> UrlBuilder:
     params = request.query_params._dict
     auth = AuthDTO(
             lang=params["LANG"],

@@ -4,7 +4,7 @@ from CRest.database.database_requests import *
 from .url_builder import UrlBuilder
 
 from fastapi import Depends
-from CRest.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
 class EventUrlBuilder(UrlBuilder):
     def __init__(self, auth: AuthDTO):
@@ -23,7 +23,7 @@ class EventUrlBuilder(UrlBuilder):
         return self.auth.member_id
 
 
-def get_event_url_builder_depends(body: dict | None = Depends(decode_body_request)) -> UrlBuilder:
+def get_event_url_builder_depends(body: dict | None = Depends(get_body)) -> UrlBuilder:
     auth = AuthDTO(
                 lang=None,
                 app_id=body["auth"]["application_token"],

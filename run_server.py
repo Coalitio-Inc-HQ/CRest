@@ -1,7 +1,7 @@
 import uvicorn
 from CRest.app import BitrixAPI, BitrixAPIMode
 from CRest.settings import settings
-from CRest.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 from fastapi import Depends
 
 from fastapi.responses import HTMLResponse
@@ -10,7 +10,7 @@ from CRest.call.url_builders.frame_url_builder import FrameUrlBuilder, get_frame
 from CRest.call.url_builders.event_url_builder import EventUrlBuilder, get_event_url_builder_depends
 
 
-from CRest.call.сall_parameters_decoder.сall_parameters_decoder import decode_body_request
+from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
 
 from CRest.call.calls import CallAPIBitrix
@@ -20,37 +20,33 @@ from CRest.call.url_builders.oauth2_url_builder import get_oauth_2_url_builder_d
 
 # import CRest.check_server # не убирать
 
+from CRest.router import BitrixRouter
 
 app = BitrixAPI(
     BitrixAPIMode.CirculationApplication,
     CallAPIBitrix(CallDirectorBarrelStrategy()),
 )
 
+router = BitrixRouter()
 
 @app.head("/install")
 async def init_head():
     pass
 
-
-@app.head("/index")
-async def index_head():
-    pass
-
-
 @app.post("/install", response_class=HTMLResponse)
-async def install_post(url_builder=Depends(app.url_bulder_init_depends), body: dict | None = Depends(decode_body_request)):
+async def install_post(url_builder=Depends(app.url_bulder_init_depends), body: dict | None = Depends(get_body)):
     url_builder = url_builder
 
     if (body["PLACEMENT"] == "DEFAULT"):
 
         return """
         <head>
-            <script CRest="//api.bitrix24.com/api/v1/"></script>
+            <script src="//api.bitrix24.com/api/v1/"></script>
             <script>
-                BX24.init(function(){
-                    BX24.installFinish();
-                });
-            </script>
+				BX24.init(function(){
+					BX24.installFinish();
+				});
+			</script>
         </head>
         <body>
                 installation has been finished.
@@ -63,6 +59,9 @@ async def install_post(url_builder=Depends(app.url_bulder_init_depends), body: d
         </body>
         """
 
+@app.head("/index")
+async def index_head():
+    pass
 
 @app.get("/index")
 async def index_get(url_builder=Depends(get_oauth_2_url_builder_depends)):
@@ -162,7 +161,7 @@ async def index_post(url_builder=Depends(app.url_bulder_depends),):
     return {"res": res, "res1": res1, "res2": res2}
 
 
-@app.add_event_bind("onCrmContactAdd")
+@router.add_event_bind("onCrmContactAdd")
 async def onCrmContactAdd(url_builder=Depends(get_event_url_builder_depends)):
     res = await app.call_api_bitrix.call_method(url_builder, "crm.contact.add",
                                                 {
@@ -187,7 +186,7 @@ async def onCrmContactAdd(url_builder=Depends(get_event_url_builder_depends)):
     return res
 
 
-@app.add_placement_bind("LEFT_MENU", "HI")
+@router.add_placement_bind("LEFT_MENU", "HI")
 async def LEFT_MENU(url_builder=Depends(get_frame_url_builder_depends)):
 
     res = await app.call_api_bitrix.call_method(url_builder, "crm.contact.add",
@@ -220,12 +219,14 @@ async def CRM_DEAL_DETAIL_ACTIVITY(url_builder=Depends(get_frame_url_builder_dep
 
 
 @app.post("/settings")
-async def settings1(params: dict | None = Depends(decode_body_request)):
+async def settings1(params: dict | None = Depends(get_body)):
     return params
 
 
 @app.add_event_bind("onAppInstall")
 async def onAppInstall(url_builder=Depends(get_event_url_builder_depends)):
     return "ok"
+
+app.include_router(router, prefix="/123")
 
 uvicorn.run(app.app, host=settings.APP_HOST, port=settings.APP_PORT)

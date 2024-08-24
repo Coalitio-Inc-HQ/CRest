@@ -29,6 +29,14 @@ def call_parameters_decoder(string: str) -> dict:
     return res
 
 
+async def decode_body(request: Request) -> dict | None:
+    string = str(await request.body())[2:-1]
+    if string != "":
+        return call_parameters_decoder(string)
+    else:
+        return None
+
+
 async def decode_body_request(request: Request) -> dict | None:
     # Извлечение тела запроса
     content_type = request.headers.get("content-type")
@@ -36,13 +44,14 @@ async def decode_body_request(request: Request) -> dict | None:
     if content_type == "application/json":
         body = await request.json()
     elif content_type == "application/x-www-form-urlencoded":
-        body = await decode_body_request(request)
+        body = await decode_body(request)
     request.state.body = body
 
     return body
 
-# def get_body(request: Request) -> dict | None:
-#     if request.state.body:
-#         return request.state.body
-#     else:
-#         return None
+
+async def get_body(request: Request) -> dict | None:
+    if hasattr(request.state, "body"):
+        return request.state.body
+    else:
+        return await decode_body_request(request) 
