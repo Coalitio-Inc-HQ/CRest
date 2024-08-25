@@ -37,6 +37,8 @@ from CRest.call.url_builders.oauth2_url_builder import OAuth2UrlBuilder, get_oau
 
 from CRest.router import BitrixRouter
 
+from CRest.event_loop_breaker.event_loop_breaker_base import EventLoopBreakerBase
+
 import enum
 from enum import Enum
 
@@ -83,6 +85,7 @@ class BitrixAPI:
         self,
         mode: BitrixAPIMode,
         call_api_bitrix: CallAPIBitrix, 
+        event_loop_breaker: EventLoopBreakerBase,
         lifespan=None, 
         routers: list[APIRouter] | None = None, 
         event_binds: list[EventBind] | None = None, 
@@ -124,6 +127,7 @@ class BitrixAPI:
                     body = {}
                 )
             )
+        self.event_loop_breaker = event_loop_breaker
 
         self.app = FastAPI(lifespan=lifespan_decorator)
 
@@ -431,6 +435,7 @@ class BitrixAPI:
             new_placement = PlacementBind(title=placement.title, placement=placement.placement, handler=prefix+placement.handler)
             self.placement_binds.append(new_placement)
 
+        router.event_loop_breaker = self.event_loop_breaker
         router.url_bulder_depends = self.url_bulder_depends
         router.url_bulder_init_depends = self.url_bulder_init_depends
 

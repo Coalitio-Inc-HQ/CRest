@@ -40,6 +40,9 @@ class Settings(BaseSettings):
 
     IS_CIRCULATION_APP: bool
 
+    REDIS_URL: str
+    REDIS_PASSWORD: str | None = None
+
     @property
     def DATABASE_URL_ASINC(self):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"

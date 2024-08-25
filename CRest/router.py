@@ -51,6 +51,7 @@ class BitrixRouter():
         self.call_api_bitrix = None
         self.url_bulder_depends = None
         self.url_bulder_init_depends = None
+        self.event_loop_breaker = None
 
         self.get = self.router.get
         self.head = self.router.head
@@ -206,6 +207,7 @@ class BitrixRouter():
             new_placement = PlacementBind(title=placement.title, placement=placement.placement, handler=prefix+placement.handler)
             self.placement_binds.append(new_placement)
 
+        router.event_loop_breaker = self.event_loop_breaker
         router.url_bulder_depends = self.url_bulder_depends
         router.url_bulder_init_depends = self.url_bulder_init_depends
 

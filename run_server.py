@@ -17,14 +17,16 @@ from CRest.call.calls import CallAPIBitrix
 
 from CRest.call.call_director import CallDirectorBarrelStrategy
 from CRest.call.url_builders.oauth2_url_builder import get_oauth_2_url_builder_depends
-
 # import CRest.check_server # не убирать
 
 from CRest.router import BitrixRouter
 
+from CRest.event_loop_breaker.event_loop_breaker_redis import EventLoopBreakerRedis
+
 app = BitrixAPI(
     BitrixAPIMode.CirculationApplication,
     CallAPIBitrix(CallDirectorBarrelStrategy()),
+    EventLoopBreakerRedis(settings.REDIS_URL, settings.REDIS_PASSWORD)
 )
 
 router = BitrixRouter()
