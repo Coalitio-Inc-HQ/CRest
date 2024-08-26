@@ -418,47 +418,47 @@ class BitrixAPI:
             generate_unique_id_function=generate_unique_id_function,
         )
     
-    def include_router(
-        self,
-        router: "BitrixRouter", 
-        *args,
-        prefix: str = "",
-        tags: Optional[List[Union[str, Enum]]] = None,
-        dependencies: Optional[Sequence[params.Depends]] = None,
-        default_response_class: Type[Response] = Default(JSONResponse),
-        responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
-        callbacks: Optional[List[BaseRoute]] = None,
-        deprecated: Optional[bool] = None,
-        include_in_schema: bool = True,
-        generate_unique_id_function: Callable[[APIRoute], str] = Default(generate_unique_id),
-    ) -> None:
+    # def include_router(
+    #     self,
+    #     router: "BitrixRouter", 
+    #     *args,
+    #     prefix: str = "",
+    #     tags: Optional[List[Union[str, Enum]]] = None,
+    #     dependencies: Optional[Sequence[params.Depends]] = None,
+    #     default_response_class: Type[Response] = Default(JSONResponse),
+    #     responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+    #     callbacks: Optional[List[BaseRoute]] = None,
+    #     deprecated: Optional[bool] = None,
+    #     include_in_schema: bool = True,
+    #     generate_unique_id_function: Callable[[APIRoute], str] = Default(generate_unique_id),
+    # ) -> None:
 
-        for event in router.event_binds:
-            new_event = EventBind(event=event.event, handler=prefix+event.handler)
-            self.event_binds.append(new_event)
+    #     for event in router.event_binds:
+    #         new_event = EventBind(event=event.event, handler=prefix+event.handler)
+    #         self.event_binds.append(new_event)
 
-        for placement in router.placement_binds:
-            new_placement = PlacementBind(title=placement.title, placement=placement.placement, handler=prefix+placement.handler)
-            self.placement_binds.append(new_placement)
+    #     for placement in router.placement_binds:
+    #         new_placement = PlacementBind(title=placement.title, placement=placement.placement, handler=prefix+placement.handler)
+    #         self.placement_binds.append(new_placement)
 
-        router.event_loop_breaker = self.event_loop_breaker
-        router.url_bulder_depends = self.url_bulder_depends
-        router.url_bulder_init_depends = self.url_bulder_init_depends
-        router.call_api_bitrix = self.call_api_bitrix
+    #     router.event_loop_breaker = self.event_loop_breaker
+    #     router.url_bulder_depends = self.url_bulder_depends
+    #     router.url_bulder_init_depends = self.url_bulder_init_depends
+    #     router.call_api_bitrix = self.call_api_bitrix
 
-        self.app.include_router(
-            router.router, 
-            *args,
-            prefix = prefix,
-            tags = tags,
-            dependencies = dependencies,
-            default_response_class = default_response_class,
-            responses = responses,
-            callbacks = callbacks,
-            deprecated = deprecated,
-            include_in_schema = include_in_schema,
-            generate_unique_id_function = generate_unique_id_function,
-        )
+    #     self.app.include_router(
+    #         router.router, 
+    #         *args,
+    #         prefix = prefix,
+    #         tags = tags,
+    #         dependencies = dependencies,
+    #         default_response_class = default_response_class,
+    #         responses = responses,
+    #         callbacks = callbacks,
+    #         deprecated = deprecated,
+    #         include_in_schema = include_in_schema,
+    #         generate_unique_id_function = generate_unique_id_function,
+    #     )
 
     def build_app(self) -> None:
         for item in self.routers:

@@ -95,12 +95,13 @@ class BitrixRouter():
     ) -> Callable[[Callable], Callable]:
         
         if not path:
-            path = "/" + event 
+            path = "/" + event
+        rout_path = path
         path = self.router.prefix + path
         self.event_binds.append(EventBind(event=event, handler=path))
 
         return self.router.post(
-            path,
+            rout_path,
             response_model=response_model,
             status_code=status_code,
             tags=tags,
@@ -157,12 +158,13 @@ class BitrixRouter():
     ) -> Callable[[Callable], Callable]:
 
         if not path:
-            path = "/" + placement 
+            path = "/" + placement
+        rout_path = path
         path = self.router.prefix + path
         self.placement_binds.append(PlacementBind(title=title, placement=placement, handler=path))        
 
         return self.router.post(
-            path,
+            rout_path,
             response_model=response_model,
             status_code=status_code,
             tags=tags,
