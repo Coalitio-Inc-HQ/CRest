@@ -81,6 +81,10 @@ class BitrixAPIMode(enum.Enum):
     CirculationApplication = CirculationApplicationUrlBuilder
 
 class BitrixAPI:
+    """
+    Вжно заимпорить файлы в которых содержатся роутеры.
+    Затем перед самым запуском app необходимо вызвать функцию build_app.
+    """
     def __init__(
         self,
         mode: BitrixAPIMode,
@@ -95,6 +99,8 @@ class BitrixAPI:
         self.event_binds = event_binds or []
         self.placement_binds = placement_binds or []
         self.call_api_bitrix = call_api_bitrix
+
+        self.routers = []
 
         def lifespan_decorator(app: FastAPI):
             log(
@@ -438,6 +444,7 @@ class BitrixAPI:
         router.event_loop_breaker = self.event_loop_breaker
         router.url_bulder_depends = self.url_bulder_depends
         router.url_bulder_init_depends = self.url_bulder_init_depends
+        router.call_api_bitrix = self.call_api_bitrix
 
         self.app.include_router(
             router.router, 
@@ -452,3 +459,18 @@ class BitrixAPI:
             include_in_schema = include_in_schema,
             generate_unique_id_function = generate_unique_id_function,
         )
+
+    def build_app(self) -> None:
+        for item in self.routers:
+            item.build_router()
+
+            for event in item.event_binds:
+                new_event = EventBind(event=event.event, handler=event.handler)
+                self.event_binds.append(new_event)
+
+            for placement in item.placement_binds:
+                new_placement = PlacementBind(title=placement.title, placement=placement.placement, handler=placement.handler)
+                self.placement_binds.append(new_placement)
+
+
+            self.app.include_router(item.router)

@@ -16,10 +16,10 @@ from fastapi.routing import APIRoute
 from CRest.event_bind import EventBind
 from CRest.placement_bind import PlacementBind
 
-
 class BitrixRouter():
     def __init__(
                 self, 
+                parent,
                 *args, 
                 prefix: str = "",
                 tags: Optional[List[Union[str, Enum]]] = None,
@@ -48,10 +48,13 @@ class BitrixRouter():
             include_in_schema=include_in_schema, generate_unique_id_function=generate_unique_id_function
         )
 
-        self.call_api_bitrix = None
-        self.url_bulder_depends = None
-        self.url_bulder_init_depends = None
-        self.event_loop_breaker = None
+        self.call_api_bitrix = parent.call_api_bitrix
+        self.url_bulder_depends = parent.url_bulder_depends
+        self.url_bulder_init_depends = parent.url_bulder_init_depends
+        self.event_loop_breaker = parent.event_loop_breaker
+        self.routers = []
+
+        parent.routers.append(self)
 
         self.get = self.router.get
         self.head = self.router.head
@@ -184,44 +187,19 @@ class BitrixRouter():
             generate_unique_id_function=generate_unique_id_function,
         )
     
-    def include_router(
-        self,
-        router: "BitrixRouter", 
-        *args,
-        prefix: str = "",
-        tags: Optional[List[Union[str, Enum]]] = None,
-        dependencies: Optional[Sequence[params.Depends]] = None,
-        default_response_class: Type[Response] = Default(JSONResponse),
-        responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
-        callbacks: Optional[List[BaseRoute]] = None,
-        deprecated: Optional[bool] = None,
-        include_in_schema: bool = True,
-        generate_unique_id_function: Callable[[APIRoute], str] = Default(generate_unique_id),
-    ) -> None:
 
-        for event in router.event_binds:
-            new_event = EventBind(event=event.event, handler=prefix+event.handler)
-            self.event_binds.append(new_event)
+    def build_router(self) -> None:
+        for item in self.routers:
+            item.build_router()
 
-        for placement in router.placement_binds:
-            new_placement = PlacementBind(title=placement.title, placement=placement.placement, handler=prefix+placement.handler)
-            self.placement_binds.append(new_placement)
+            for event in item.event_binds:
+                new_event = EventBind(event=event.event, handler=event.handler)
+                self.event_binds.append(new_event)
 
-        router.event_loop_breaker = self.event_loop_breaker
-        router.url_bulder_depends = self.url_bulder_depends
-        router.url_bulder_init_depends = self.url_bulder_init_depends
+            for placement in item.placement_binds:
+                new_placement = PlacementBind(title=placement.title, placement=placement.placement, handler=placement.handler)
+                self.placement_binds.append(new_placement)
 
-        self.router.include_router(
-            router.router, 
-            *args,
-            prefix = prefix,
-            tags = tags,
-            dependencies = dependencies,
-            default_response_class = default_response_class,
-            responses = responses,
-            callbacks = callbacks,
-            deprecated = deprecated,
-            include_in_schema = include_in_schema,
-            generate_unique_id_function = generate_unique_id_function,
-        )
+
+            self.router.include_router(item.router)
 

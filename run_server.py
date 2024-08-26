@@ -29,7 +29,7 @@ app = BitrixAPI(
     EventLoopBreakerRedis(settings.REDIS_URL, settings.REDIS_PASSWORD)
 )
 
-router = BitrixRouter()
+router = BitrixRouter(app)
 
 @app.head("/install")
 async def init_head():
@@ -229,6 +229,5 @@ async def settings1(params: dict | None = Depends(get_body)):
 async def onAppInstall(url_builder=Depends(get_event_url_builder_depends)):
     return "ok"
 
-app.include_router(router, prefix="/123")
-
+app.build_app()
 uvicorn.run(app.app, host=settings.APP_HOST, port=settings.APP_PORT)
