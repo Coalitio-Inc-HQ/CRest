@@ -14,7 +14,7 @@ class EventLoopBreakerRedis(EventLoopBreakerBase):
             self.pool = redis.ConnectionPool.from_url(url+"?decode_responses=True")
         self.ex = ex
 
-    async def chek_event(self, url_builder: UrlBuilder, event: str, values: dict) -> bool:
+    async def chek_event(self, url_builder: UrlBuilder, event: str, id: str, values: dict) -> bool:
         """
         Проверяет произощёл ли повторынй вызов события.
 
@@ -23,7 +23,7 @@ class EventLoopBreakerRedis(EventLoopBreakerBase):
         False - событие встретилось ранее.
         """
         async with redis.Redis.from_pool(self.pool) as conn:
-            res = await conn.get(url_builder.get_name()+event)
+            res = await conn.get(url_builder.get_name()+event+id)
 
             if not res:
                 return True
@@ -33,9 +33,9 @@ class EventLoopBreakerRedis(EventLoopBreakerBase):
             return not values == res_dict
         
 
-    async def register_event(self, url_builder: UrlBuilder, event: str, values: dict) -> None:
+    async def register_event(self, url_builder: UrlBuilder, event: str, id: str, values: dict) -> None:
         """
         Регестирует событие.
         """
         async with redis.Redis.from_pool(self.pool) as conn:
-            await conn.set(url_builder.get_name()+event, json.dumps(values), ex=self.ex)
+            await conn.set(url_builder.get_name()+event+id, json.dumps(values), ex=self.ex)
