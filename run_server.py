@@ -24,7 +24,7 @@ from CRest.router import BitrixRouter
 from CRest.event_loop_breaker.event_loop_breaker_redis import EventLoopBreakerRedis
 
 app = BitrixAPI(
-    BitrixAPIMode.CirculationApplication,
+    BitrixAPIMode.LocalApplication,
     CallAPIBitrix(CallDirectorBarrelStrategy()),
     EventLoopBreakerRedis(settings.REDIS_URL, settings.REDIS_PASSWORD)
 )

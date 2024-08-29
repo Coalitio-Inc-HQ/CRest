@@ -267,6 +267,7 @@ class BitrixAPI:
                                         }
                                     )
                                 )
+                return url_builder
 
                     
             except Exception as error:

@@ -6,9 +6,14 @@ b = EventLoopBreakerRedis("redis://localhost")
 
 import asyncio 
 
-async def s():
-    # await b.register_event(WebHookUrlBuilder("conf.json"), "asd", {"key":"value"})
-    print(await b.chek_event(WebHookUrlBuilder("conf.json"), "asd", {"key":"value"}))
+# async def s():
+#     # await b.register_event(WebHookUrlBuilder("conf.json"), "asd", {"key":"value"})
+#     print(await b.chek_event(WebHookUrlBuilder("conf.json"), "asd", {"key":"value"}))
 
 
-asyncio.run(s())
+# asyncio.run(s())
+
+try:
+    raise ValueError("qwe")
+except ValueError as e:
+    print (e)
