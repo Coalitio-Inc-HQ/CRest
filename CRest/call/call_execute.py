@@ -9,21 +9,21 @@ from CRest.call.url_builders.url_builder import UrlBuilder
 from CRest.call.url_builders.url_builder import ExceptionRefreshAuth
 
 
-async def call_execute(url_builder: UrlBuilder, method: str, param_str: str) -> Any:
+async def call_execute(url_builder: UrlBuilder, method: str, param_str: str, body: dict | None = None) -> Any:
     """
     Осуществляет выполнение запроса с учётом переадрисации и обновления токена.
     """
     async with AsyncClient(timeout=10.0) as clinet:
         try:
-            response = await clinet.post(url_builder.build_url(method, param_str))
+            response = await clinet.post(url_builder.build_url(method, param_str), json=body)
 
             if response.status_code == 401:
                 if url_builder.is_reauth:
                     await url_builder.update_auth()
-                    response = await clinet.post(url_builder.build_url(method, param_str))
+                    response = await clinet.post(url_builder.build_url(method, param_str), json=body)
             elif response.status_code == 302:
                 await url_builder.update_domain(response.headers['Location'])
-                response = await clinet.post(url_builder.build_url(method, param_str))
+                response = await clinet.post(url_builder.build_url(method, param_str), json=body)
 
             response.raise_for_status()
             return response.json()

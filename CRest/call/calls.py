@@ -132,7 +132,7 @@ class CallAPIBitrix:
         
 
     @error_catcher("call_method")
-    async def call_method(self, url_builder: UrlBuilder, method: str, params: dict) -> Any:
+    async def call_method(self, url_builder: UrlBuilder, method: str, params: dict, body: dict | None = None) -> Any:
         """
         Осуществляет выполнение запроса.
         Пример:
@@ -145,7 +145,7 @@ class CallAPIBitrix:
             }
         }
         """
-        res = await self.call_director.call_request(url_builder, method, params)
+        res = await self.call_director.call_request(url_builder, method, params, body)
         return res
 
     @error_catcher("call_batch")

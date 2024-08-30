@@ -18,7 +18,7 @@ async def run():
 
     bitrix_api = CallAPIBitrix(CallDirectorBarrelStrategy())
 
-    with open("C:\\Users\\vl\\Desktop\\Документ Microsoft Word.docx", "rb") as file:
+    with open("C:\\Users\\vl\\Desktop\\1.docx", "rb") as file:
 
         res = await bitrix_api.call_method(web_hook_url_builder, "documentgenerator.template.add",
                                         {

@@ -21,7 +21,7 @@ class CallDirector:
     2) Контроль 503 (следствие нарушения ограничений).
     3) Окончательная сборка запроса (Почему именно здесь? - Потому, что именно здесь можно осуществлять компоновку зпросов в batch).
     """
-    async def call_request(self,url_builder: UrlBuilder, method:str, params:dict) -> Any:
+    async def call_request(self,url_builder: UrlBuilder, method:str, params:dict, body: dict | None = None) -> Any:
         pass
 
     async def call_bath_request(self,url_builder: UrlBuilder,calls:list, halt: bool) -> Any:
@@ -62,7 +62,7 @@ class CallDirectorBarrelStrategy(CallDirector):
             return domain_info
 
     
-    async def call_request(self,url_builder: UrlBuilder, method:str, params:dict) -> Any:
+    async def call_request(self,url_builder: UrlBuilder, method:str, params:dict, body: dict | None = None) -> Any:
         domain_info = self.get_domain_info(url_builder)
 
         while domain_info["number_of_requests"]>70:
@@ -72,7 +72,7 @@ class CallDirectorBarrelStrategy(CallDirector):
         try:
             while True:
                 try:
-                    res = await call_execute(url_builder,method, call_parameters_encoder(params))
+                    res = await call_execute(url_builder,method, call_parameters_encoder(params), body)
 
                     if "error" in res:
                         if res["error"] =="OPERATION_TIME_LIMIT":
