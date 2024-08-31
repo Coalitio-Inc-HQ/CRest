@@ -23,7 +23,15 @@ class WebHookUrlBuilder(BaseUrlBuilder):
     def get_name(self) -> str:
         return settings.C_REST_WEB_HOOK_URL
 
-    def get_settings(self) -> dict:
+
+    async def set_settings(self, settings: dict) -> None:
+        self.settings = settings
+
+        with open(self.filename, 'w', encoding='utf-8') as f:
+            f.write(json.dumps(settings))
+        
+
+    async def get_settings(self) -> dict:
         return self.settings
 
 

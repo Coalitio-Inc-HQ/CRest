@@ -60,10 +60,10 @@ class CirculationApplicationUrlBuilder(BaseUrlBuilder):
         return self.auth.member_id
     
     async def set_settings(self, settings: dict) -> None:
-        await update_auth_domain(self.session, settings)
+        await update_auth_settings(self.session, settings)
         self.auth.settings = settings
 
-    def get_settings(self) -> dict:
+    async def get_settings(self) -> dict:
         return self.auth.settings
 
 

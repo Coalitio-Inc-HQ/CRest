@@ -49,7 +49,7 @@ class LocalApplicationUrlBuilder(BaseUrlBuilder):
 
     async def update_domain(self, domain: str) -> None:
         self.auth.domain = domain
-
+    
         with open(self.filename, 'w', encoding='utf-8') as f:
             f.write(self.auth.model_dump_json())
 
@@ -62,7 +62,7 @@ class LocalApplicationUrlBuilder(BaseUrlBuilder):
         with open(self.filename, 'w', encoding='utf-8') as f:
             f.write(self.auth.model_dump_json())
 
-    def get_settings(self) -> dict:
+    async def get_settings(self) -> dict:
         return self.auth.settings
 
 
