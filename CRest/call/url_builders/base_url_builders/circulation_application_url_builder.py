@@ -68,7 +68,7 @@ class CirculationApplicationUrlBuilder(BaseUrlBuilder):
 
 
 def get_circulation_application_url_builder_depends(get_session):
-    async def get_url_builder(session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)) -> UrlBuilder:
+    async def get_url_builder(session: AsyncSession = Depends(get_session), body: dict | None = Depends(get_body)) -> BaseUrlBuilder:
         member_id = None
         if "member_id" in body:
             member_id=body["member_id"]
@@ -82,7 +82,7 @@ def get_circulation_application_url_builder_depends(get_session):
 
 
 def get_circulation_application_url_builder_init_depends(get_session):
-    async def get_init_url_builder(request: Request , body: dict | None = Depends(get_body), session: AsyncSession = Depends(get_session)) -> UrlBuilder:
+    async def get_init_url_builder(request: Request , body: dict | None = Depends(get_body), session: AsyncSession = Depends(get_session)) -> BaseUrlBuilder:
         
         params = request.query_params._dict
 

@@ -67,13 +67,13 @@ class LocalApplicationUrlBuilder(BaseUrlBuilder):
 
 
 def get_local_application_url_builder_depends(filename: str):
-    def get_url_builder() -> UrlBuilder:
+    def get_url_builder() -> BaseUrlBuilder:
         return LocalApplicationUrlBuilder(filename)
     return get_url_builder
 
 
 def get_local_application_url_builder_init_depends(filename: str):
-    def get_init_url_builder(request: Request , body: dict | None = Depends(get_body)) -> UrlBuilder:
+    def get_init_url_builder(request: Request , body: dict | None = Depends(get_body)) -> BaseUrlBuilder:
         
         params = request.query_params._dict
 

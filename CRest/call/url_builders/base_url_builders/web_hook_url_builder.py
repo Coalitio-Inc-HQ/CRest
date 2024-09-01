@@ -36,13 +36,13 @@ class WebHookUrlBuilder(BaseUrlBuilder):
 
 
 def get_web_hook_url_builder_depends(filename: str):
-    def get_url_builder() -> UrlBuilder:
+    def get_url_builder() -> BaseUrlBuilder:
         return WebHookUrlBuilder(filename)
     return get_url_builder
 
 
 def get_web_hook_url_builder_init_depends(filename: str):
-    def get_init_url_builder() -> UrlBuilder:
+    def get_init_url_builder() -> BaseUrlBuilder:
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(json.dumps({}))
         return WebHookUrlBuilder(filename)

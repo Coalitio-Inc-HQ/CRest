@@ -39,6 +39,8 @@ from CRest.router import BitrixRouter
 
 from CRest.event_loop_breaker.event_loop_breaker_base import EventLoopBreakerBase
 
+from CRest.call.url_builders.base_url_builders.base_url_builder import BaseUrlBuilder
+
 import enum
 from enum import Enum
 
@@ -189,7 +191,7 @@ class BitrixAPI:
                 self.url_bulder_depends = get_circulation_application_url_builder_depends(get_session)
                 self.url_bulder_init_depends = get_circulation_application_url_builder_init_depends(get_session)
 
-        async def url_bulder_init_depends_(url_builder: UrlBuilder = Depends(self.url_bulder_init_depends)) -> UrlBuilder:
+        async def url_bulder_init_depends_(url_builder: BaseUrlBuilder = Depends(self.url_bulder_init_depends)) -> BaseUrlBuilder:
             """
             TODO Наверное надо добавить вызов ошибки при некооректной установке.
             """
