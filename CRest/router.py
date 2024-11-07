@@ -11,10 +11,13 @@ from starlette.routing import Mount as Mount  # noqa
 from starlette.types import ASGIApp, Lifespan
 from fastapi.types import  IncEx
 
+from typing import Literal
+
 from fastapi.routing import APIRoute
 
 from CRest.event_bind import EventBind
 from CRest.placement_bind import PlacementBind
+from .robot_bind import RobotBind
 
 class BitrixRouter():
     def __init__(
@@ -64,6 +67,7 @@ class BitrixRouter():
 
         self.event_binds = []
         self.placement_binds = []
+        self.robot_binds = []
 
     def add_event_bind(
         self,
@@ -190,6 +194,89 @@ class BitrixRouter():
         )
     
 
+    def add_robot_bind(
+        self,
+        code: str,
+        robot_name:str,
+        *,
+        path: str| None = None,
+        auth_user_id:str = "1",
+        use_subscriptin: Literal["N","Y"]="N",
+        proprtes: Any = None,
+        use_placment: Literal["N","Y"] = "N",
+        placment_handler: str | None = None,
+        return_proprtes: Any = None,
+
+        response_model: Any = None,
+        status_code: Optional[int] = None,
+        tags: Optional[List[Union[str, Enum]]] = None,
+        dependencies: Optional[Sequence[Depends]] = None,
+        summary: Optional[str] = None,
+        description: Optional[str] = None,
+        response_description: str = "Successful Response",
+        responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+        deprecated: Optional[bool] = None,
+        operation_id: Optional[str] = None,
+        response_model_include: Optional[IncEx] = None,
+        response_model_exclude: Optional[IncEx] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        include_in_schema: bool = True,
+        response_class: Type[Response] = JSONResponse,
+        name: Optional[str] = None,
+        callbacks: Optional[List[APIRoute]] = None,
+        openapi_extra: Optional[Dict[str, Any]] = None,
+        generate_unique_id_function: Callable[[APIRoute], str] = generate_unique_id,
+    ) -> Callable[[Callable], Callable]:
+        if use_placment == "Y" and placment_handler==None:
+            raise Exception("use_placment=Y, placment_handler=None")
+
+        if not path:
+            path = "/" + robot_name 
+        rout_path = path
+        path = self.router.prefix + path
+        self.robot_binds.append(RobotBind(
+            code = code,
+            handler = path,
+            auth_user_id = auth_user_id ,
+            name = robot_name,
+            use_subscriptin = use_subscriptin,
+            proprtes = proprtes,
+            use_placment = use_placment,
+            placment_handler = placment_handler,
+            return_proprtes = return_proprtes,
+            ))        
+
+        return self.router.post(
+            path,
+            response_model=response_model,
+            status_code=status_code,
+            tags=tags,
+            dependencies=dependencies,
+            summary=summary,
+            description=description,
+            response_description=response_description,
+            responses=responses,
+            deprecated=deprecated,
+            operation_id=operation_id,
+            response_model_include=response_model_include,
+            response_model_exclude=response_model_exclude,
+            response_model_by_alias=response_model_by_alias,
+            response_model_exclude_unset=response_model_exclude_unset,
+            response_model_exclude_defaults=response_model_exclude_defaults,
+            response_model_exclude_none=response_model_exclude_none,
+            include_in_schema=include_in_schema,
+            response_class=response_class,
+            name=name,
+            callbacks=callbacks,
+            openapi_extra=openapi_extra,
+            generate_unique_id_function=generate_unique_id_function,
+        )
+
+
+
     def build_router(self) -> None:
         for item in self.routers:
             item.build_router()
@@ -202,6 +289,19 @@ class BitrixRouter():
                 new_placement = PlacementBind(title=placement.title, placement=placement.placement, handler=placement.handler)
                 self.placement_binds.append(new_placement)
 
+            for robot in item.robot_binds:
+                new_robot = RobotBind(
+                                code = robot.code,
+                                handler = robot.path,
+                                auth_user_id = robot.auth_user_id ,
+                                name = robot.robot_name,
+                                use_subscriptin = robot.use_subscriptin,
+                                proprtes = robot.proprtes,
+                                use_placment = robot.use_placment,
+                                placment_handler = robot.placment_handler,
+                                return_proprtes = robot.return_proprtes,
+                                )
+                self.robot_binds.append(new_robot)
 
             self.router.include_router(item.router)
 

@@ -16,7 +16,6 @@ class LocalApplicationUrlBuilder(BaseUrlBuilder):
 
         with open(filename) as json_data:
             self.auth = AuthDTO.model_validate_json(json_data.read())
-    
 
     def build_url (self, method:str, params: str) -> str:
         return f"https://{self.auth.domain}/rest/{method}.{self.strategy}"+"?"+params+"&auth="+self.auth.access_token

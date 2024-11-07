@@ -10,6 +10,8 @@ from fastapi.routing import APIRoute
 from starlette.routing import (BaseRoute,)
 from fastapi import params
 
+from typing import Literal
+
 from CRest.loging.logging_utility import log, LogMessage, LogHeader,log_en
 import uuid
 import traceback
@@ -26,7 +28,7 @@ from CRest.call.url_builders.base_url_builders.circulation_application_url_build
 
 from .event_bind import EventBind
 from .placement_bind import PlacementBind
-
+from .robot_bind import RobotBind
 
 from CRest.call.url_builders.url_builder import UrlBuilder
 from CRest.call.url_builders.base_url_builders.web_hook_url_builder import WebHookUrlBuilder, get_web_hook_url_builder_depends, get_web_hook_url_builder_init_depends
@@ -95,11 +97,13 @@ class BitrixAPI:
         lifespan=None, 
         routers: list[APIRouter] | None = None, 
         event_binds: list[EventBind] | None = None, 
-        placement_binds: list[PlacementBind] | None = None
+        placement_binds: list[PlacementBind] | None = None,
+        robot_binds: list[RobotBind] | None = None
         ) -> None:
         
         self.event_binds = event_binds or []
         self.placement_binds = placement_binds or []
+        self.robot_binds = robot_binds or []
         self.call_api_bitrix = call_api_bitrix
 
         self.routers = []
@@ -269,6 +273,49 @@ class BitrixAPI:
                                         }
                                     )
                                 )
+
+                if self.robot_binds:
+                    robot_arr = []
+                    for robot in self.robot_binds:
+                        robot_arr.append(
+                            {
+                                "method": "bizproc.robot.add",
+                                "params": {
+                                    "CODE": robot.code,
+                                    "HANDLER": settings.APP_HANDLER_ADDRESS + robot.handler,
+                                    "AUTH_USER_ID": robot.auth_user_id,
+                                    "NAME": robot.name,
+                                    "USE_SUBSCRIPTION": str(robot.use_subscriptin),
+                                    "PROPERTIES": robot.proprtes,
+                                    "USE_PLACEMENT": str(robot.USE_PLACEMENT),
+                                    "PLACEMENT_HANDLER": robot.placment_handler,
+                                    "RETURN_PROPERTIES": robot.return_proprtes,
+                                }
+                            }
+                        )
+                    result = await self.call_api_bitrix.call_batch(url_builder, placement_arr)
+                    
+                    if "result_error" in result["result"]:
+                        if type(result["result"]["result_error"]) == dict:
+                            if len(result["result"]["result_error"]) != 0:
+                                log(
+                                    LogMessage(
+                                        header=LogHeader(
+                                                id = uuid.uuid4(),
+                                                title = "Ошибка установки роботов.",
+                                                tegs = {
+                                                    "member": url_builder.get_name()
+                                                },
+                                                time = None,
+                                                level = log_en.ERROR
+                                        ),
+                                        body = {
+                                            "member": url_builder.get_name(),
+                                            "robot_binds_binds": self.robot_binds_binds,
+                                            "result": result
+                                        }
+                                    )
+                                )
                 return url_builder
 
                     
@@ -421,6 +468,85 @@ class BitrixAPI:
             generate_unique_id_function=generate_unique_id_function,
         )
     
+    def add_robot_bind(
+        self,
+        code: str,
+        robot_name:str,
+        *,
+        path: str| None = None,
+        auth_user_id:str = "1",
+        use_subscriptin: Literal["N","Y"]="N",
+        proprtes: Any = None,
+        use_placment: Literal["N","Y"] = "N",
+        placment_handler: str | None = None,
+        return_proprtes: Any = None,
+
+        response_model: Any = None,
+        status_code: Optional[int] = None,
+        tags: Optional[List[Union[str, enum.Enum]]] = None,
+        dependencies: Optional[Sequence[Depends]] = None,
+        summary: Optional[str] = None,
+        description: Optional[str] = None,
+        response_description: str = "Successful Response",
+        responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+        deprecated: Optional[bool] = None,
+        operation_id: Optional[str] = None,
+        response_model_include: Optional[IncEx] = None,
+        response_model_exclude: Optional[IncEx] = None,
+        response_model_by_alias: bool = True,
+        response_model_exclude_unset: bool = False,
+        response_model_exclude_defaults: bool = False,
+        response_model_exclude_none: bool = False,
+        include_in_schema: bool = True,
+        response_class: Type[Response] = JSONResponse,
+        name: Optional[str] = None,
+        callbacks: Optional[List[APIRoute]] = None,
+        openapi_extra: Optional[Dict[str, Any]] = None,
+        generate_unique_id_function: Callable[[APIRoute], str] = generate_unique_id,
+    ) -> Callable[[Callable], Callable]:
+        if use_placment == "Y" and placment_handler==None:
+            raise Exception("use_placment=Y, placment_handler=None")
+
+        if not path:
+            path = "/" + robot_name 
+        self.robot_binds.append(RobotBind(
+            code = code,
+            handler = path,
+            auth_user_id = auth_user_id ,
+            name = robot_name,
+            use_subscriptin = use_subscriptin,
+            proprtes = proprtes,
+            use_placment = use_placment,
+            placment_handler = placment_handler,
+            return_proprtes = return_proprtes,
+            ))        
+
+        return self.app.router.post(
+            path,
+            response_model=response_model,
+            status_code=status_code,
+            tags=tags,
+            dependencies=dependencies,
+            summary=summary,
+            description=description,
+            response_description=response_description,
+            responses=responses,
+            deprecated=deprecated,
+            operation_id=operation_id,
+            response_model_include=response_model_include,
+            response_model_exclude=response_model_exclude,
+            response_model_by_alias=response_model_by_alias,
+            response_model_exclude_unset=response_model_exclude_unset,
+            response_model_exclude_defaults=response_model_exclude_defaults,
+            response_model_exclude_none=response_model_exclude_none,
+            include_in_schema=include_in_schema,
+            response_class=response_class,
+            name=name,
+            callbacks=callbacks,
+            openapi_extra=openapi_extra,
+            generate_unique_id_function=generate_unique_id_function,
+        )
+
     # def include_router(
     #     self,
     #     router: "BitrixRouter", 
