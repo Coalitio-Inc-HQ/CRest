@@ -292,9 +292,9 @@ class BitrixRouter():
             for robot in item.robot_binds:
                 new_robot = RobotBind(
                                 code = robot.code,
-                                handler = robot.path,
+                                handler = robot.handler,
                                 auth_user_id = robot.auth_user_id ,
-                                name = robot.robot_name,
+                                name = robot.name,
                                 use_subscriptin = robot.use_subscriptin,
                                 proprtes = robot.proprtes,
                                 use_placment = robot.use_placment,

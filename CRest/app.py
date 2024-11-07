@@ -200,79 +200,79 @@ class BitrixAPI:
             TODO Наверное надо добавить вызов ошибки при некооректной установке.
             """
             try:
-                if self.event_binds:
-                    event_arr = []
-                    for event in self.event_binds:
-                        event_arr.append(
-                            {
-                                "method": "event.bind",
-                                "params": {
-                                    "event": event.event,
-                                    "handler": settings.APP_HANDLER_ADDRESS + event.handler
-                                }
-                            }
-                        )
-                    result = await self.call_api_bitrix.call_batch(url_builder, event_arr)
+                # if self.event_binds:
+                #     event_arr = []
+                #     for event in self.event_binds:
+                #         event_arr.append(
+                #             {
+                #                 "method": "event.bind",
+                #                 "params": {
+                #                     "event": event.event,
+                #                     "handler": settings.APP_HANDLER_ADDRESS + event.handler
+                #                 }
+                #             }
+                #         )
+                #     result = await self.call_api_bitrix.call_batch(url_builder, event_arr)
 
-                    if "result_error" in result["result"]:
-                        if type(result["result"]["result_error"]) == dict:
-                            if len(result["result"]["result_error"]) != 0:
-                                log(
-                                    LogMessage(
-                                        header=LogHeader(
-                                                id = uuid.uuid4(),
-                                                title = "Ошибка установки обработчиков событий.",
-                                                tegs = {
-                                                    "member": url_builder.get_name()
-                                                },
-                                                time = None,
-                                                level = log_en.ERROR
-                                        ),
-                                        body = {
-                                            "member": url_builder.get_name(),
-                                            "event_binds": self.event_binds,
-                                            "result": result
-                                        }
-                                    )
-                                )
+                #     if "result_error" in result["result"]:
+                #         if type(result["result"]["result_error"]) == dict:
+                #             if len(result["result"]["result_error"]) != 0:
+                #                 log(
+                #                     LogMessage(
+                #                         header=LogHeader(
+                #                                 id = uuid.uuid4(),
+                #                                 title = "Ошибка установки обработчиков событий.",
+                #                                 tegs = {
+                #                                     "member": url_builder.get_name()
+                #                                 },
+                #                                 time = None,
+                #                                 level = log_en.ERROR
+                #                         ),
+                #                         body = {
+                #                             "member": url_builder.get_name(),
+                #                             "event_binds": self.event_binds,
+                #                             "result": result
+                #                         }
+                #                     )
+                #                 )
         
                         
-                if self.placement_binds:
-                    placement_arr = []
-                    for placement in self.placement_binds:
-                        placement_arr.append(
-                            {
-                                "method": "placement.bind",
-                                "params": {
-                                    "PLACEMENT": placement.placement,
-                                    "HANDLER": settings.APP_HANDLER_ADDRESS + placement.handler,
-                                    "TITLE": placement.title
-                                }
-                            }
-                        )
-                    result = await self.call_api_bitrix.call_batch(url_builder, placement_arr)
+                # if self.placement_binds:
+                #     placement_arr = []
+                #     for placement in self.placement_binds:
+                #         placement_arr.append(
+                #             {
+                #                 "method": "placement.bind",
+                #                 "params": {
+                #                     "PLACEMENT": placement.placement,
+                #                     "HANDLER": settings.APP_HANDLER_ADDRESS + placement.handler,
+                #                     "TITLE": placement.title
+                #                 }
+                #             }
+                #         )
+                #     result = await self.call_api_bitrix.call_batch(url_builder, placement_arr)
                     
-                    if "result_error" in result["result"]:
-                        if type(result["result"]["result_error"]) == dict:
-                            if len(result["result"]["result_error"]) != 0:
-                                log(
-                                    LogMessage(
-                                        header=LogHeader(
-                                                id = uuid.uuid4(),
-                                                title = "Ошибка установки мест встраивания.",
-                                                tegs = {
-                                                    "member": url_builder.get_name()
-                                                },
-                                                time = None,
-                                                level = log_en.ERROR
-                                        ),
-                                        body = {
-                                            "member": url_builder.get_name(),
-                                            "placement_binds": self.placement_binds,
-                                            "result": result
-                                        }
-                                    )
-                                )
+                #     if "result_error" in result["result"]:
+                #         if type(result["result"]["result_error"]) == dict:
+                #             if len(result["result"]["result_error"]) != 0:
+                #                 log(
+                #                     LogMessage(
+                #                         header=LogHeader(
+                #                                 id = uuid.uuid4(),
+                #                                 title = "Ошибка установки мест встраивания.",
+                #                                 tegs = {
+                #                                     "member": url_builder.get_name()
+                #                                 },
+                #                                 time = None,
+                #                                 level = log_en.ERROR
+                #                         ),
+                #                         body = {
+                #                             "member": url_builder.get_name(),
+                #                             "placement_binds": self.placement_binds,
+                #                             "result": result
+                #                         }
+                #                     )
+                #                 )
 
                 if self.robot_binds:
                     robot_arr = []
@@ -286,14 +286,14 @@ class BitrixAPI:
                                     "AUTH_USER_ID": robot.auth_user_id,
                                     "NAME": robot.name,
                                     "USE_SUBSCRIPTION": str(robot.use_subscriptin),
-                                    "PROPERTIES": robot.proprtes,
-                                    "USE_PLACEMENT": str(robot.USE_PLACEMENT),
+                                    "PROPERTIES": robot.proprtes if robot.proprtes else "",
+                                    "USE_PLACEMENT": str(robot.use_placment),
                                     "PLACEMENT_HANDLER": robot.placment_handler,
                                     "RETURN_PROPERTIES": robot.return_proprtes,
                                 }
                             }
                         )
-                    result = await self.call_api_bitrix.call_batch(url_builder, placement_arr)
+                    result = await self.call_api_bitrix.call_batch(url_builder, robot_arr)
                     
                     if "result_error" in result["result"]:
                         if type(result["result"]["result_error"]) == dict:
@@ -600,6 +600,21 @@ class BitrixAPI:
             for placement in item.placement_binds:
                 new_placement = PlacementBind(title=placement.title, placement=placement.placement, handler=placement.handler)
                 self.placement_binds.append(new_placement)
+
+
+            for robot in item.robot_binds:
+                new_robot = RobotBind(
+                                code = robot.code,
+                                handler = robot.handler,
+                                auth_user_id = robot.auth_user_id ,
+                                name = robot.name,
+                                use_subscriptin = robot.use_subscriptin,
+                                proprtes = robot.proprtes,
+                                use_placment = robot.use_placment,
+                                placment_handler = robot.placment_handler,
+                                return_proprtes = robot.return_proprtes,
+                                )
+                self.robot_binds.append(new_robot)
 
 
             self.app.include_router(item.router)
