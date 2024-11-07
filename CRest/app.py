@@ -200,79 +200,79 @@ class BitrixAPI:
             TODO Наверное надо добавить вызов ошибки при некооректной установке.
             """
             try:
-                # if self.event_binds:
-                #     event_arr = []
-                #     for event in self.event_binds:
-                #         event_arr.append(
-                #             {
-                #                 "method": "event.bind",
-                #                 "params": {
-                #                     "event": event.event,
-                #                     "handler": settings.APP_HANDLER_ADDRESS + event.handler
-                #                 }
-                #             }
-                #         )
-                #     result = await self.call_api_bitrix.call_batch(url_builder, event_arr)
+                if self.event_binds:
+                    event_arr = []
+                    for event in self.event_binds:
+                        event_arr.append(
+                            {
+                                "method": "event.bind",
+                                "params": {
+                                    "event": event.event,
+                                    "handler": settings.APP_HANDLER_ADDRESS + event.handler
+                                }
+                            }
+                        )
+                    result = await self.call_api_bitrix.call_batch(url_builder, event_arr)
 
-                #     if "result_error" in result["result"]:
-                #         if type(result["result"]["result_error"]) == dict:
-                #             if len(result["result"]["result_error"]) != 0:
-                #                 log(
-                #                     LogMessage(
-                #                         header=LogHeader(
-                #                                 id = uuid.uuid4(),
-                #                                 title = "Ошибка установки обработчиков событий.",
-                #                                 tegs = {
-                #                                     "member": url_builder.get_name()
-                #                                 },
-                #                                 time = None,
-                #                                 level = log_en.ERROR
-                #                         ),
-                #                         body = {
-                #                             "member": url_builder.get_name(),
-                #                             "event_binds": self.event_binds,
-                #                             "result": result
-                #                         }
-                #                     )
-                #                 )
+                    if "result_error" in result["result"]:
+                        if type(result["result"]["result_error"]) == dict:
+                            if len(result["result"]["result_error"]) != 0:
+                                log(
+                                    LogMessage(
+                                        header=LogHeader(
+                                                id = uuid.uuid4(),
+                                                title = "Ошибка установки обработчиков событий.",
+                                                tegs = {
+                                                    "member": url_builder.get_name()
+                                                },
+                                                time = None,
+                                                level = log_en.ERROR
+                                        ),
+                                        body = {
+                                            "member": url_builder.get_name(),
+                                            "event_binds": self.event_binds,
+                                            "result": result
+                                        }
+                                    )
+                                )
         
                         
-                # if self.placement_binds:
-                #     placement_arr = []
-                #     for placement in self.placement_binds:
-                #         placement_arr.append(
-                #             {
-                #                 "method": "placement.bind",
-                #                 "params": {
-                #                     "PLACEMENT": placement.placement,
-                #                     "HANDLER": settings.APP_HANDLER_ADDRESS + placement.handler,
-                #                     "TITLE": placement.title
-                #                 }
-                #             }
-                #         )
-                #     result = await self.call_api_bitrix.call_batch(url_builder, placement_arr)
+                if self.placement_binds:
+                    placement_arr = []
+                    for placement in self.placement_binds:
+                        placement_arr.append(
+                            {
+                                "method": "placement.bind",
+                                "params": {
+                                    "PLACEMENT": placement.placement,
+                                    "HANDLER": settings.APP_HANDLER_ADDRESS + placement.handler,
+                                    "TITLE": placement.title
+                                }
+                            }
+                        )
+                    result = await self.call_api_bitrix.call_batch(url_builder, placement_arr)
                     
-                #     if "result_error" in result["result"]:
-                #         if type(result["result"]["result_error"]) == dict:
-                #             if len(result["result"]["result_error"]) != 0:
-                #                 log(
-                #                     LogMessage(
-                #                         header=LogHeader(
-                #                                 id = uuid.uuid4(),
-                #                                 title = "Ошибка установки мест встраивания.",
-                #                                 tegs = {
-                #                                     "member": url_builder.get_name()
-                #                                 },
-                #                                 time = None,
-                #                                 level = log_en.ERROR
-                #                         ),
-                #                         body = {
-                #                             "member": url_builder.get_name(),
-                #                             "placement_binds": self.placement_binds,
-                #                             "result": result
-                #                         }
-                #                     )
-                #                 )
+                    if "result_error" in result["result"]:
+                        if type(result["result"]["result_error"]) == dict:
+                            if len(result["result"]["result_error"]) != 0:
+                                log(
+                                    LogMessage(
+                                        header=LogHeader(
+                                                id = uuid.uuid4(),
+                                                title = "Ошибка установки мест встраивания.",
+                                                tegs = {
+                                                    "member": url_builder.get_name()
+                                                },
+                                                time = None,
+                                                level = log_en.ERROR
+                                        ),
+                                        body = {
+                                            "member": url_builder.get_name(),
+                                            "placement_binds": self.placement_binds,
+                                            "result": result
+                                        }
+                                    )
+                                )
 
                 if self.robot_binds:
                     robot_arr = []
