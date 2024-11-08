@@ -277,20 +277,29 @@ class BitrixAPI:
                 if self.robot_binds:
                     robot_arr = []
                     for robot in self.robot_binds:
+                        params = {
+                            "CODE": robot.code,
+                            "HANDLER": settings.APP_HANDLER_ADDRESS + robot.handler,
+                            "AUTH_USER_ID": robot.auth_user_id,
+                            "NAME": robot.name,
+                        }
+
+                        if robot.use_subscriptin == 'Y':
+                            params.update({"USE_SUBSCRIPTION":"Y"})
+
+                        if robot.proprtes:
+                            params.update({"PROPERTIES":robot.proprtes})
+
+                        if robot.use_placment == 'Y':
+                            params.update({"USE_PLACEMENT":"Y","PLACEMENT_HANDLER":robot.placment_handler})
+
+                        if robot.return_proprtes:
+                            params.update({"RETURN_PROPERTIES":robot.return_proprtes})
+
                         robot_arr.append(
                             {
                                 "method": "bizproc.robot.add",
-                                "params": {
-                                    "CODE": robot.code,
-                                    "HANDLER": settings.APP_HANDLER_ADDRESS + robot.handler,
-                                    "AUTH_USER_ID": robot.auth_user_id,
-                                    "NAME": robot.name,
-                                    "USE_SUBSCRIPTION": str(robot.use_subscriptin),
-                                    "PROPERTIES": robot.proprtes if robot.proprtes else "",
-                                    "USE_PLACEMENT": str(robot.use_placment),
-                                    "PLACEMENT_HANDLER": robot.placment_handler,
-                                    "RETURN_PROPERTIES": robot.return_proprtes,
-                                }
+                                "params": params
                             }
                         )
                     result = await self.call_api_bitrix.call_batch(url_builder, robot_arr)

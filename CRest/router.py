@@ -250,7 +250,7 @@ class BitrixRouter():
             ))        
 
         return self.router.post(
-            path,
+            rout_path,
             response_model=response_model,
             status_code=status_code,
             tags=tags,
@@ -282,17 +282,17 @@ class BitrixRouter():
             item.build_router()
 
             for event in item.event_binds:
-                new_event = EventBind(event=event.event, handler=event.handler)
+                new_event = EventBind(event=event.event, handler=self.router.prefix+event.handler)
                 self.event_binds.append(new_event)
 
             for placement in item.placement_binds:
-                new_placement = PlacementBind(title=placement.title, placement=placement.placement, handler=placement.handler)
+                new_placement = PlacementBind(title=placement.title, placement=placement.placement, handler=self.router.prefix+placement.handler)
                 self.placement_binds.append(new_placement)
 
             for robot in item.robot_binds:
                 new_robot = RobotBind(
                                 code = robot.code,
-                                handler = robot.handler,
+                                handler =self.router.prefix+robot.handler,
                                 auth_user_id = robot.auth_user_id ,
                                 name = robot.name,
                                 use_subscriptin = robot.use_subscriptin,

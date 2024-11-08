@@ -30,8 +30,8 @@ app = BitrixAPI(
     CallAPIBitrix(CallDirectorBarrelStrategy()),
     EventLoopBreakerRedis(settings.REDIS_URL, settings.REDIS_PASSWORD)
 )
-
-router = BitrixRouter(app)
+router1 = BitrixRouter(app,prefix="/2")
+router = BitrixRouter(router1,prefix="/1")
 
 @app.head("/install")
 async def init_head():
