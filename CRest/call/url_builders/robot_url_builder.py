@@ -1,0 +1,1 @@
+from .event_url_builder import get_event_url_builder_depends as get_robot_url_builder_depends

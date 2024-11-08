@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse
 
 from CRest.call.url_builders.frame_url_builder import FrameUrlBuilder, get_frame_url_builder_depends
 from CRest.call.url_builders.event_url_builder import EventUrlBuilder, get_event_url_builder_depends
-
+from CRest.call.url_builders.robot_url_builder import get_robot_url_builder_depends
 
 from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
@@ -238,8 +238,29 @@ async def index_post(url_builder=Depends(app.url_bulder_depends),):
 
 
 @router.add_robot_bind("TEST", "Test_robot")
-async def onCrmContactAdd(url_builder=Depends(get_event_url_builder_depends), params: dict | None = Depends(get_body)):
-    print(params)
+async def onCrmContactAdd(url_builder=Depends(get_robot_url_builder_depends), params: dict | None = Depends(get_body)):
+    res = await app.call_api_bitrix.call_method(url_builder, "crm.contact.add",
+                                                {
+                                                    "FIELDS": {
+                                                        "NAME": "Иван",
+                                                        "LAST_NAME": "Петров",
+                                                        "EMAIL": [
+                                                            {
+                                                                "VALUE": "mail@example.com",
+                                                                "VALUE_TYPE": "WORK"
+                                                            }
+                                                        ],
+                                                        "PHONE": [
+                                                            {
+                                                                "VALUE": "555888",
+                                                                "VALUE_TYPE": "WORK"
+                                                            }
+                                                        ]
+                                                    }
+                                                })
+
+    print(res)
+    return res
 
 @router.add_event_bind("onCrmContactAdd")
 async def onCrmContactAdd(url_builder=Depends(get_event_url_builder_depends)):
