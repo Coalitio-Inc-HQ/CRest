@@ -237,26 +237,42 @@ async def index_post(url_builder=Depends(app.url_bulder_depends),):
     # return {"res": res}
 
 
-@router.add_robot_bind("TEST", "Test_robot")
+@router.add_robot_bind("TEST", "Test_robot", proprtes={
+    'action':
+    {
+        "NAME":"Действие",
+        'Type': 'select',
+        'Options': {
+            'one': '1',
+            'two': '2'
+        }
+    }
+})
 async def onCrmContactAdd(url_builder=Depends(get_robot_url_builder_depends), params: dict | None = Depends(get_body)):
-    res = await app.call_api_bitrix.call_method(url_builder, "crm.contact.add",
+    # res = await app.call_api_bitrix.call_method(url_builder, "crm.contact.add",
+    #                                             {
+    #                                                 "FIELDS": {
+    #                                                     "NAME": "Иван",
+    #                                                     "LAST_NAME": "Петров",
+    #                                                     "EMAIL": [
+    #                                                         {
+    #                                                             "VALUE": "mail@example.com",
+    #                                                             "VALUE_TYPE": "WORK"
+    #                                                         }
+    #                                                     ],
+    #                                                     "PHONE": [
+    #                                                         {
+    #                                                             "VALUE": "555888",
+    #                                                             "VALUE_TYPE": "WORK"
+    #                                                         }
+    #                                                     ]
+    #                                                 }
+    #                                             })
+
+    res = await app.call_api_bitrix.call_method(url_builder, "crm.item.get",
                                                 {
-                                                    "FIELDS": {
-                                                        "NAME": "Иван",
-                                                        "LAST_NAME": "Петров",
-                                                        "EMAIL": [
-                                                            {
-                                                                "VALUE": "mail@example.com",
-                                                                "VALUE_TYPE": "WORK"
-                                                            }
-                                                        ],
-                                                        "PHONE": [
-                                                            {
-                                                                "VALUE": "555888",
-                                                                "VALUE_TYPE": "WORK"
-                                                            }
-                                                        ]
-                                                    }
+                                                    "entityTypeId":f"1036",
+                                                    "id":f"1"
                                                 })
 
     print(res)

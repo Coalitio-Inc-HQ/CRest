@@ -103,6 +103,11 @@ def get_circulation_application_url_builder_init_depends(get_session):
                 settings={}
             )
 
+
+        last_auth = await get_auth_by_member_id(session=session, member_id=auth.member_id)
+        if last_auth and last_auth.settings:
+            auth.settings = last_auth.settings
+
         await insert_auth(session, auth)
         return CirculationApplicationUrlBuilder(auth,session)
             

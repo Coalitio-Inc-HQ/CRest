@@ -8,7 +8,6 @@ from fastapi import Depends, Request
 
 from CRest.call.сall_parameters_decoder.сall_parameters_decoder import get_body
 
-
 class LocalApplicationUrlBuilder(BaseUrlBuilder):
     def __init__(self, filename: str):
         super().__init__(True, True)
@@ -73,7 +72,16 @@ def get_local_application_url_builder_depends(filename: str):
 
 def get_local_application_url_builder_init_depends(filename: str):
     def get_init_url_builder(request: Request , body: dict | None = Depends(get_body)) -> BaseUrlBuilder:
-        
+
+        settings = {}
+        try:
+            with open(filename) as json_data:
+                last_auth = AuthDTO.model_validate_json(json_data.read())
+                if last_auth:
+                    settings = last_auth.settings
+        except:
+            settings = {}
+
         params = request.query_params._dict
 
         auth = AuthDTO(
@@ -90,7 +98,7 @@ def get_local_application_url_builder_init_depends(filename: str):
                 user_id=None,
                 refresh_token = body["REFRESH_ID"],
 
-                settings={}
+                settings=settings,
             )
 
         with open(filename, 'w', encoding='utf-8') as f:

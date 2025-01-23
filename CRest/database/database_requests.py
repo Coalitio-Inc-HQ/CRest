@@ -85,8 +85,11 @@ async def get_auth_by_member_id(session: AsyncSession, member_id: str) -> AuthDT
     """
     Получает AuthDTO из БД по member_id.
     """
-    res_orm = (await session.execute(select(AuthORM).where(AuthORM.member_id==member_id))).scalar()
-    return AuthDTO.model_validate(res_orm,from_attributes=True)
+    res_orm = (await session.execute(select(AuthORM).where(AuthORM.member_id==member_id))).scalar_one_or_none()
+    if res_orm:
+        return AuthDTO.model_validate(res_orm,from_attributes=True)
+    else:
+        return None
 
 
 async def update_auth_settings(session: AsyncSession, member_id: str, settings: str) -> None:
