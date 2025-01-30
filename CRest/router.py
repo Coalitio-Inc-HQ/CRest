@@ -234,7 +234,7 @@ class BitrixRouter():
             raise Exception("use_placment=Y, placment_handler=None")
 
         if not path:
-            path = "/" + robot_name 
+            path = "/" + code 
         rout_path = path
         path = self.router.prefix + path
         self.robot_binds.append(RobotBind(

@@ -517,7 +517,7 @@ class BitrixAPI:
             raise Exception("use_placment=Y, placment_handler=None")
 
         if not path:
-            path = "/" + robot_name 
+            path = "/" + code 
         self.robot_binds.append(RobotBind(
             code = code,
             handler = path,
